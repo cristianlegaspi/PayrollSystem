@@ -1,0 +1,85 @@
+<?php
+
+namespace App\Filament\Resources\Payrolls\Schemas;
+
+use Filament\Infolists\Components\TextEntry;
+use Filament\Schemas\Schema;
+use Filament\Schemas\Components\Section;
+
+class PayrollInfolist
+{
+    public static function configure(Schema $schema): Schema
+    {
+        return $schema
+            ->components([
+
+
+             Section::make('Employment Details')
+                    ->schema([
+                 TextEntry::make('employee.full_name')
+                    ->numeric(),
+
+                 TextEntry::make('daily_rate')
+                    ->numeric(),
+
+             ])->columns(2),
+
+
+              Section::make('Payroll Period Details')
+                    ->schema([
+                 TextEntry::make('payrollPeriod.description')
+                    ->numeric(),
+
+             ]),
+
+             
+              Section::make('Attendance Record Details')
+                    ->schema([
+                  TextEntry::make('days_worked')
+                    ->numeric(),
+                TextEntry::make('days_absent')
+                    ->numeric(),
+                TextEntry::make('undertime_hours')
+                    ->numeric(),
+                TextEntry::make('overtime_hours')
+                    ->numeric(),
+                TextEntry::make('night_diff_hours')
+                    ->numeric(),
+                TextEntry::make('night_diff_ot_hours')
+                    ->numeric(),
+
+             ])->columns(2),
+
+
+
+             Section::make('Salary Details')
+                    ->schema([
+
+                     TextEntry::make('basic_salary')
+                    ->numeric(),
+                TextEntry::make('overtime_salary')
+                    ->numeric(),
+                TextEntry::make('night_diff_salary')
+                    ->numeric(),
+                TextEntry::make('night_diff_ot_salary')
+                    ->numeric(),
+                TextEntry::make('gross_pay')
+                    ->numeric(),
+                TextEntry::make('total_deductions')
+                    ->numeric(),
+                TextEntry::make('cash_advance')
+                    ->numeric(),
+                TextEntry::make('shortages')
+                    ->numeric(),
+                TextEntry::make('net_pay')
+                    ->numeric()
+                    ->badge(),
+                
+
+             ])->columns(3),
+
+
+
+            ]);
+    }
+}
