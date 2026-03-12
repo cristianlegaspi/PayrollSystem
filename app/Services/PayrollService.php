@@ -31,32 +31,32 @@ class PayrollService
             $daysAbsent = $dtrs->where('status', 'absent_without_pay')->count();
 
             // Undertime only for actual worked days
-            $undertimeHours = $dtrs->where('status', 'on_duty')->sum('undertime_hours');
+            $undertimeHours = $dtrs
+                ->filter(fn($dtr) => $dtr->status === 'on_duty')
+                ->sum('undertime_hours');
 
-            // OT and Night Diff
-            $overtimeHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('overtime_hours');
-            $nightDiffHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_hours');
-            $nightDiffOtHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_ot_hours');
-
-            // If any absent without pay exists, undertime becomes 0
-            if ($dtrs->contains('status', 'absent_without_pay')) {
-                $undertimeHours = 0;
-            }
-
+            // Hourly rate
             $dailyRate = (float) $employee->daily_rate;
+            $hourlyRate = $dailyRate / 8;
 
             // Basic salary
             $basicSalary = $dailyRate * $daysWorked;
 
-            // Hourly rate
-            $hourlyRate = $dailyRate / 8;
+            // Deduct undertime
+            $undertimeDeduction = $undertimeHours * $hourlyRate;
+            $basicSalaryAfterUndertime = $basicSalary - $undertimeDeduction;
 
             // OT / ND computations
+            $overtimeHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('overtime_hours');
+            $nightDiffHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_hours');
+            $nightDiffOtHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_ot_hours');
+
             $overtimeSalary = $overtimeHours * ($hourlyRate * 1.25);
             $nightDiffSalary = $nightDiffHours * ($hourlyRate * 0.10);
             $nightDiffOtSalary = $nightDiffOtHours * ($hourlyRate * 0.25);
 
-            $grossPay = $basicSalary + $overtimeSalary + $nightDiffSalary + $nightDiffOtSalary;
+            // Gross pay includes undertime deduction
+            $grossPay = $basicSalaryAfterUndertime + $overtimeSalary + $nightDiffSalary + $nightDiffOtSalary;
 
             // Government contributions
             $contribution = $employee->contribution;
@@ -87,17 +87,19 @@ class PayrollService
             // Net Pay
             $netPay = $grossPay - $totalDeductionsWithManual;
 
+            // Save payroll data
             $payrollData = [
                 'employee_id' => $employee->id,
                 'payroll_period_id' => $period->id,
                 'days_worked' => $daysWorked,
                 'days_absent' => $daysAbsent,
                 'undertime_hours' => $undertimeHours,
+                'undertime_deduction' => round($undertimeDeduction, 2),
                 'overtime_hours' => $overtimeHours,
                 'night_diff_hours' => $nightDiffHours,
                 'night_diff_ot_hours' => $nightDiffOtHours,
                 'daily_rate' => $dailyRate,
-                'basic_salary' => round($basicSalary, 2),
+                'basic_salary' => round($basicSalaryAfterUndertime, 2),
                 'overtime_salary' => round($overtimeSalary, 2),
                 'night_diff_salary' => round($nightDiffSalary, 2),
                 'night_diff_ot_salary' => round($nightDiffOtSalary, 2),
