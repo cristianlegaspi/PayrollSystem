@@ -26,15 +26,13 @@ class ListPayrolls extends ListRecords
                 ->label('Print Payroll Report')
                 ->icon('heroicon-o-printer')
                 ->color('success')
-
                 ->form([
-
                     Select::make('payroll_period_id')
                         ->label('Finalized Payroll Period')
                         ->relationship(
                             name: 'payrollPeriod',
                             titleAttribute: 'description',
-                            modifyQueryUsing: fn ($query) => $query->where('status', 'finalized')
+                            modifyQueryUsing: fn($query) => $query->where('status', 'finalized')
                         )
                         ->searchable()
                         ->preload()
@@ -46,55 +44,18 @@ class ListPayrolls extends ListRecords
                         ->searchable()
                         ->preload()
                         ->required(),
-
                 ])
-
                 ->action(function (array $data) {
+                    // We generate a signed URL or a specific route to handle the PDF generation
+                    // However, for a quick and direct approach in Filament, 
+                    // we can use a redirect to a dedicated controller route.
 
-                    if (empty($data['payroll_period_id']) || empty($data['branch_id'])) {
-                        Notification::make()
-                            ->title('Please select payroll period and branch.')
-                            ->danger()
-                            ->send();
-                        return;
-                    }
-
-                    $period = PayrollPeriod::findOrFail($data['payroll_period_id']);
-                    $branch = Branch::findOrFail($data['branch_id']);
-
-                    // ✅ FILTER PAYROLL BY BRANCH
-                    $payrolls = Payroll::with(['employee', 'employee.branch', 'contribution'])
-                        ->where('payroll_period_id', $period->id)
-                        ->whereHas('employee', function ($q) use ($data) {
-                            $q->where('branch_id', $data['branch_id']);
-                        })
-                        ->orderBy('employee_id')
-                        ->get();
-
-                    if ($payrolls->isEmpty()) {
-                        Notification::make()
-                            ->title('No payrolls found for this branch.')
-                            ->warning()
-                            ->send();
-                        return;
-                    }
-
-                    // ✅ GENERATE PDF
-                    $pdf = Pdf::loadView('reports.payroll-summary', [
-                        'period' => $period,
-                        'payrolls' => $payrolls,
-                        'branch' => $branch
-                    ])->setPaper('legal', 'landscape');
-
-                    return response()->stream(
-                        fn () => print($pdf->output()),
-                        200,
-                        [
-                            'Content-Type' => 'application/pdf',
-                            'Content-Disposition' => 'inline; filename="Payroll-' . $branch->branch_name . '-' . $period->description . '.pdf"',
-                        ]
-                    );
-                }),
+                    return redirect()->route('payroll.print', [
+                        'period' => $data['payroll_period_id'],
+                        'branch' => $data['branch_id'],
+                    ]);
+                })
+                ->openUrlInNewTab(), // This is the key method
 
             // ================= GENERATE PAYROLL =================
             Action::make('generatePayroll')
@@ -108,7 +69,7 @@ class ListPayrolls extends ListRecords
                         ->relationship(
                             name: 'payrollPeriod',
                             titleAttribute: 'description',
-                            modifyQueryUsing: fn ($query) => $query->where('status', 'open')
+                            modifyQueryUsing: fn($query) => $query->where('status', 'open')
                         )
                         ->searchable()
                         ->preload()
@@ -130,7 +91,6 @@ class ListPayrolls extends ListRecords
                             ->title('Payroll generated successfully!')
                             ->success()
                             ->send();
-
                     } catch (\Throwable $e) {
 
                         Notification::make()

@@ -12,21 +12,16 @@ class ViewPayroll extends ViewRecord
 {
     protected static string $resource = PayrollResource::class;
 
-    protected function getHeaderActions(): array
-    {
-        return [
-           Action::make('downloadPayslip')
-    ->label('Download Payslip PDF')
-    //->icon('heroicon-o-download')
-    ->color('primary')
-    ->action(function ($record, PayslipService $service) {
-        $data = $service->generate($record);
-        $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView('payslip.generate', compact('data'));
-        return response()->streamDownload(
-            fn() => print($pdf->output()),
-            "Payslip-{$record->employee->full_name}.pdf"
-        );
-    }),
-        ];
-    }
+   protected function getHeaderActions(): array
+{
+    return [
+        Action::make('downloadPayslip')
+            ->label('Download Payslip PDF')
+            ->icon('heroicon-o-arrow-down-tray') // Added a nice icon for you
+            ->color('primary')
+            // Change 'payslip.generate' to 'payroll.payslip'
+            ->url(fn ($record) => route('payroll.payslip', $record)) 
+            ->openUrlInNewTab(),
+    ];
+}
 }
