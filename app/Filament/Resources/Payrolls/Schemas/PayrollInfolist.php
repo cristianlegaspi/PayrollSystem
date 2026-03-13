@@ -5,6 +5,7 @@ namespace App\Filament\Resources\Payrolls\Schemas;
 use Filament\Infolists\Components\TextEntry;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
+use Illuminate\Database\Eloquent\Model;
 
 class PayrollInfolist
 {
@@ -65,8 +66,16 @@ class PayrollInfolist
                     ->numeric(),
                 TextEntry::make('gross_pay')
                     ->numeric(),
-                TextEntry::make('total_deductions')
-                    ->numeric(),
+               TextEntry::make('total_deductions')
+                            ->label('Total Deductions')
+                            ->state(function (Model $record): float {
+                                return ($record->total_deductions ?? 0) + 
+                                       ($record->cash_advance ?? 0) + 
+                                       ($record->shortages ?? 0);
+                            })
+                            ->money('PHP')
+                            ->color('danger')
+                            ->weight('bold'),
                 TextEntry::make('cash_advance')
                     ->numeric(),
                 TextEntry::make('shortages')
