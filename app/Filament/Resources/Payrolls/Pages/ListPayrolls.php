@@ -21,41 +21,41 @@ class ListPayrolls extends ListRecords
     {
         return [
 
-            // ================= PRINT PAYROLL REPORT =================
-            Action::make('printPayrollReport')
-                ->label('Print Payroll Report')
-                ->icon('heroicon-o-printer')
-                ->color('success')
-                ->form([
-                    Select::make('payroll_period_id')
-                        ->label('Finalized Payroll Period')
-                        ->relationship(
-                            name: 'payrollPeriod',
-                            titleAttribute: 'description',
-                            modifyQueryUsing: fn($query) => $query->where('status', 'finalized')
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required(),
+           // ================= PRINT PAYROLL REPORT =================
+Action::make('printPayrollReport')
+    ->label('Print Payroll Report')
+    ->icon('heroicon-o-printer')
+    ->color('success')
+    ->form([
+        Select::make('payroll_period_id')
+            ->label('Finalized Payroll Period')
+            ->relationship(
+                name: 'payrollPeriod',
+                titleAttribute: 'description',
+                modifyQueryUsing: fn ($query) => $query->where('status', 'finalized')
+            )
+            ->searchable()
+            ->preload()
+            ->required(),
 
-                    Select::make('branch_id')
-                        ->label('Branch')
-                        ->options(Branch::pluck('branch_name', 'id'))
-                        ->searchable()
-                        ->preload()
-                        ->required(),
-                ])
-                ->action(function (array $data) {
-                    // We generate a signed URL or a specific route to handle the PDF generation
-                    // However, for a quick and direct approach in Filament, 
-                    // we can use a redirect to a dedicated controller route.
-
-                    return redirect()->route('payroll.print', [
-                        'period' => $data['payroll_period_id'],
-                        'branch' => $data['branch_id'],
-                    ]);
-                })
-                ->openUrlInNewTab(), // This is the key method
+        Select::make('branch_id')
+            ->label('Branch')
+            ->options(Branch::pluck('branch_name', 'id'))
+            ->searchable()
+            ->preload()
+            ->required(),
+    ])
+    ->action(function (array $data) {
+        // We generate a signed URL or a specific route to handle the PDF generation
+        // However, for a quick and direct approach in Filament, 
+        // we can use a redirect to a dedicated controller route.
+        
+        return redirect()->route('payroll.print', [
+            'period' => $data['payroll_period_id'],
+            'branch' => $data['branch_id'],
+        ]);
+    })
+    ->openUrlInNewTab(), // This is the key method
 
             // ================= GENERATE PAYROLL =================
             Action::make('generatePayroll')
@@ -69,7 +69,7 @@ class ListPayrolls extends ListRecords
                         ->relationship(
                             name: 'payrollPeriod',
                             titleAttribute: 'description',
-                            modifyQueryUsing: fn($query) => $query->where('status', 'open')
+                            modifyQueryUsing: fn ($query) => $query->where('status', 'open')
                         )
                         ->searchable()
                         ->preload()
@@ -91,6 +91,7 @@ class ListPayrolls extends ListRecords
                             ->title('Payroll generated successfully!')
                             ->success()
                             ->send();
+
                     } catch (\Throwable $e) {
 
                         Notification::make()
