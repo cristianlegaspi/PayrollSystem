@@ -136,7 +136,7 @@ class DailyTimeRecordForm
                                     ->afterStateUpdated(fn($get, $set) => self::compute($get, $set)),
                             ])->columns(2),
 
-                    ])->columns(3),
+                    ])->columns(1),
 
                 Section::make('Totals')
                     ->schema([
@@ -171,7 +171,7 @@ class DailyTimeRecordForm
                             ->readOnly()
                             ->default(0),
 
-                    ])->columns(5),
+                    ])->columns(2),
 
             ])->columns(1);
     }
