@@ -70,11 +70,16 @@ $field = array_fill_keys($columns, 0);
                                 + ($payroll->cash_advance ?? 0) 
                                 + ($payroll->shortages ?? 0);
 
+        // Compute total Overtime including ND and ND OT
+        $totalOvertime = ($payroll->overtime_salary ?? 0)
+                         + ($payroll->night_diff_salary ?? 0)
+                         + ($payroll->night_diff_ot_salary ?? 0);
+
         foreach($columns as $col) {
             $value = match($col) {
                 'sss_er','sss_ee','sss_loan',
                 'philhealth_er','philhealth_ee',
-                'pagibig_er','pagibig_ee','pagibig_loan' 
+                'pagibig_er','pagibig_ee','pagibig_loan'
                     => $payroll->contribution->$col ?? 0,
                 
                 // Override total_deductions with the new calculated sum
@@ -96,7 +101,7 @@ $field = array_fill_keys($columns, 0);
         <td>{{ number_format($payroll->undertime_hours,2) }}</td>
         <td>{{ number_format($payroll->daily_rate,2) }}</td>
         <td>{{ number_format($payroll->basic_salary,2) }}</td>
-        <td>{{ number_format($payroll->overtime_salary,2) }}</td>
+        <td>{{ number_format($totalOvertime,2) }}</td>
         <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
         <td>{{ number_format($payroll->gross_pay,2) }}</td>
         <td>{{ number_format($payroll->cash_advance,2) }}</td>
@@ -109,8 +114,6 @@ $field = array_fill_keys($columns, 0);
         <td>{{ number_format($payroll->contribution->pagibig_er ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->pagibig_ee ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->pagibig_loan ?? 0,2) }}</td>
-        
-        {{-- Display the updated Total Deduction --}}
         <td class="bold">{{ number_format($row_total_deductions, 2) }}</td>
         <td class="bold">{{ number_format($payroll->net_pay, 2) }}</td>
         <td class="signature"></td>

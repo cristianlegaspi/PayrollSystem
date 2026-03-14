@@ -46,16 +46,34 @@ class PayrollService
             $undertimeDeduction = $undertimeHours * $hourlyRate;
             $basicSalaryAfterUndertime = $basicSalary - $undertimeDeduction;
 
-            // OT / ND computations
-            $overtimeHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('overtime_hours');
-            $nightDiffHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_hours');
-            $nightDiffOtHours = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->sum('night_diff_ot_hours');
+            // =========================
+            // OT & ND Computations
+            // =========================
 
-            $overtimeSalary = $overtimeHours * ($hourlyRate * 1.25);
-            $nightDiffSalary = $nightDiffHours * ($hourlyRate * 0.10);
-            $nightDiffOtSalary = $nightDiffOtHours * ($hourlyRate * 0.25);
+            $overtimeSalary = 0;
+            $nightDiffSalary = 0;
+            $nightDiffOtSalary = 0;
 
-            // Gross pay includes undertime deduction
+            foreach ($dtrs as $dtr) {
+                // Regular ND hours
+                $nightDiffSalary += $dtr->night_diff_hours * ($hourlyRate * 0.10);
+
+                // Determine OT rate based on type
+                $otRate = match($dtr->ot_type ?? 'regular') {
+                    'regular' => $hourlyRate * 1.25,
+                    'sunday' => $hourlyRate * 1.30,
+                    'legal_holiday' => $hourlyRate * 2.60,
+                    default => $hourlyRate * 1.25,
+                };
+
+                // Overtime pay
+                $overtimeSalary += $dtr->overtime_hours * $otRate;
+
+                // Night Diff on OT
+                $nightDiffOtSalary += $dtr->night_diff_ot_hours * ($otRate * 0.10);
+            }
+
+            // Gross pay
             $grossPay = $basicSalaryAfterUndertime + $overtimeSalary + $nightDiffSalary + $nightDiffOtSalary;
 
             // Government contributions
@@ -95,9 +113,9 @@ class PayrollService
                 'days_absent' => $daysAbsent,
                 'undertime_hours' => $undertimeHours,
                 'undertime_deduction' => round($undertimeDeduction, 2),
-                'overtime_hours' => $overtimeHours,
-                'night_diff_hours' => $nightDiffHours,
-                'night_diff_ot_hours' => $nightDiffOtHours,
+                'overtime_hours' => $dtrs->sum('overtime_hours'),
+                'night_diff_hours' => $dtrs->sum('night_diff_hours'),
+                'night_diff_ot_hours' => $dtrs->sum('night_diff_ot_hours'),
                 'daily_rate' => $dailyRate,
                 'basic_salary' => round($basicSalaryAfterUndertime, 2),
                 'overtime_salary' => round($overtimeSalary, 2),
