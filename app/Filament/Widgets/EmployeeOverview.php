@@ -14,6 +14,7 @@ class EmployeeOverview extends StatsOverviewWidget
 
     protected function getStats(): array
     {
+        // Get latest finalized payroll period
         $latestPeriod = PayrollPeriod::where('status', 'finalized')
             ->orderByDesc('end_date')
             ->first();
@@ -26,6 +27,7 @@ class EmployeeOverview extends StatsOverviewWidget
         $end = Carbon::parse($latestPeriod->end_date);
         $calendarDays = $start->diffInDays($end) + 1;
 
+        // Aggregate payroll totals
         $totals = Payroll::where('payroll_period_id', $latestPeriod->id)
             ->selectRaw('
                 SUM(basic_salary) as total_basic,
@@ -36,9 +38,13 @@ class EmployeeOverview extends StatsOverviewWidget
                 SUM(shortages) as total_shortages,
                 SUM(total_deductions) as total_deduct,
                 SUM(net_pay) as total_net
-            ')->first();
+            ')
+            ->first();
 
         $periodLabel = $start->format('M d') . ' - ' . $end->format('M d, Y');
+
+        // Combine OT + ND + ND OT for Total Overtime stat
+        $totalOvertimeCombined = ($totals->total_ot ?? 0) + ($totals->total_nd ?? 0);
 
         return [
             // 1. Period Duration
@@ -47,54 +53,48 @@ class EmployeeOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color('primary'),
 
-            // 2. Basic Salary
+            // 2. Total Basic Salary
             Stat::make('Total Basic Salary', '₱' . number_format($totals->total_basic ?? 0, 2))
                 ->description('Total base pay')
                 ->descriptionIcon('heroicon-m-briefcase')
                 ->color('info'),
 
-            // 3. Total Overtime
-            Stat::make('Total Overtime', '₱' . number_format($totals->total_ot ?? 0, 2))
-                ->description('Extra hours rendered')
+            // 3. Total Overtime (includes ND + ND OT)
+            Stat::make('Total Overtime', '₱' . number_format($totalOvertimeCombined, 2))
+                ->description('Extra hours rendered including night differential')
                 ->descriptionIcon('heroicon-m-clock')
                 ->color('info'),
 
-            // 4. NEW: Total Night Differential
-            Stat::make('Total Night Diff', '₱' . number_format($totals->total_nd ?? 0, 2))
-                ->description('Night shift premiums')
-                ->descriptionIcon('heroicon-m-moon')
-                ->color('info'),
-
-            // 5. Total Gross Pay
+            // 4. Total Gross Pay
             Stat::make('Total Gross Pay', '₱' . number_format($totals->total_gross ?? 0, 2))
                 ->description('Earnings before deductions')
                 ->descriptionIcon('heroicon-m-plus-circle')
-                ->chart([$totals->total_basic, $totals->total_gross])
+                ->chart([$totals->total_basic ?? 0, $totals->total_gross ?? 0])
                 ->color('info'),
 
-            // 6. Cash Advance
+            // 5. Cash Advance
             Stat::make('Total Cash Advance', '₱' . number_format($totals->total_ca ?? 0, 2))
                 ->description('Outstanding CA')
                 ->descriptionIcon('heroicon-m-arrow-path')
                 ->color('warning'),
 
-            // 7. Shortages
+            // 6. Shortages
             Stat::make('Total Shortages', '₱' . number_format($totals->total_shortages ?? 0, 2))
                 ->description('Accountability deductions')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('danger'),
 
-            // 8. Total Deductions
+            // 7. Total Deductions
             Stat::make('Total Deductions', '₱' . number_format($totals->total_deduct ?? 0, 2))
                 ->description('SSS, PH, PI & Loans')
                 ->descriptionIcon('heroicon-m-minus-circle')
                 ->color('danger'),
 
-            // 9. Total Net Pay
+            // 8. Total Net Pay
             Stat::make('Total Net Pay', '₱' . number_format($totals->total_net ?? 0, 2))
                 ->description('Final payout amount')
                 ->descriptionIcon('heroicon-m-check-badge')
-                ->chart([0, $totals->total_net / 2, $totals->total_net])
+                ->chart([0, ($totals->total_net ?? 0) / 2, $totals->total_net ?? 0])
                 ->color('success')
                 ->extraAttributes(['class' => 'hover:scale-105 transition']),
         ];
