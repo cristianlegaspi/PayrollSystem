@@ -54,6 +54,9 @@ class DailyTimeRecordsTable
                 TextColumn::make('total_hours')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('sunday_ot_hours')
+                    ->numeric()
+                    ->sortable(),
                 TextColumn::make('remarks')
                     ->searchable(),
                 TextColumn::make('created_at')

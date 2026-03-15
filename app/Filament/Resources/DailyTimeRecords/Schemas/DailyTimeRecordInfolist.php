@@ -88,6 +88,11 @@ class DailyTimeRecordInfolist
                             ->label('Night Differential OT Hours')
                             ->numeric(),
 
+                        
+                        TextEntry::make('sunday_ot_hours')
+                            ->label('Sunday OT Hours')
+                            ->numeric(),
+
                         TextEntry::make('remarks')
                             ->badge()
                             ->color(fn(string $state): string => match ($state) {

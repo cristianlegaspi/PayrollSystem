@@ -11,7 +11,7 @@ class PayrollService
 {
     public function computePayrollForPeriod(PayrollPeriod $period)
     {
-        // Get employees who have DTRs in this period
+        // Get employees with DTR in the period
         $employeeIds = DailyTimeRecord::whereBetween('work_date', [$period->start_date, $period->end_date])
             ->pluck('employee_id')
             ->unique();
@@ -26,61 +26,85 @@ class PayrollService
                 ->whereBetween('work_date', [$period->start_date, $period->end_date])
                 ->get();
 
-            // Attendance summary
-            $daysWorked = $dtrs->whereIn('status', ['on_duty', 'absent_with_pay'])->count();
+            // =========================
+            // ATTENDANCE SUMMARY
+            // =========================
+
+            // Only count actual worked days
+            $daysWorked = $dtrs->filter(function ($dtr) {
+                return $dtr->status === 'on_duty' && $dtr->sunday_ot_hours == 0;
+            })->count();
+
             $daysAbsent = $dtrs->where('status', 'absent_without_pay')->count();
 
-            // Undertime only for actual worked days
+            // Undertime only if actually on duty
             $undertimeHours = $dtrs
                 ->filter(fn($dtr) => $dtr->status === 'on_duty')
                 ->sum('undertime_hours');
 
-            // Hourly rate
+            // =========================
+            // RATE COMPUTATION
+            // =========================
+
             $dailyRate = (float) $employee->daily_rate;
             $hourlyRate = $dailyRate / 8;
 
-            // Basic salary
+            // =========================
+            // BASIC SALARY
+            // =========================
+
             $basicSalary = $dailyRate * $daysWorked;
 
             // Deduct undertime
             $undertimeDeduction = $undertimeHours * $hourlyRate;
+
             $basicSalaryAfterUndertime = $basicSalary - $undertimeDeduction;
 
             // =========================
-            // OT & ND Computations
+            // OT & NIGHT DIFFERENTIAL
             // =========================
 
             $overtimeSalary = 0;
+            $sundayOtSalary = 0;
             $nightDiffSalary = 0;
             $nightDiffOtSalary = 0;
 
             foreach ($dtrs as $dtr) {
-                // Regular ND hours
+
+                // Night Differential (10%)
                 $nightDiffSalary += $dtr->night_diff_hours * ($hourlyRate * 0.10);
 
-                // Determine OT rate based on type
-                $otRate = match($dtr->ot_type ?? 'regular') {
-                    'regular' => $hourlyRate * 1.25,
-                    'sunday' => $hourlyRate * 1.30,
-                    'legal_holiday' => $hourlyRate * 2.60,
-                    default => $hourlyRate * 1.25,
-                };
+                // Regular OT (125%)
+                $overtimeSalary += $dtr->overtime_hours * ($hourlyRate * 1.25);
 
-                // Overtime pay
-                $overtimeSalary += $dtr->overtime_hours * $otRate;
+                // Sunday OT (130%)
+                $sundayOtSalary += $dtr->sunday_ot_hours * ($hourlyRate * 1.30);
 
-                // Night Diff on OT
-                $nightDiffOtSalary += $dtr->night_diff_ot_hours * ($otRate * 0.10);
+                // Night Differential OT
+                $nightDiffOtSalary += $dtr->night_diff_ot_hours * (($hourlyRate * 1.25) * 0.10);
             }
 
-            // Gross pay
-            $grossPay = $basicSalaryAfterUndertime + $overtimeSalary + $nightDiffSalary + $nightDiffOtSalary;
+            // =========================
+            // GROSS PAY
+            // =========================
 
-            // Government contributions
+            $grossPay =
+                $basicSalaryAfterUndertime +
+                $overtimeSalary +
+                $sundayOtSalary +
+                $nightDiffSalary +
+                $nightDiffOtSalary;
+
+            // =========================
+            // GOVERNMENT DEDUCTIONS
+            // =========================
+
             $contribution = $employee->contribution;
+
             $totalDeductions = 0;
 
             if ($contribution) {
+
                 $totalDeductions =
                     ($contribution->sss_ee ?? 0) +
                     ($contribution->philhealth_ee ?? 0) +
@@ -92,7 +116,10 @@ class PayrollService
                     ($contribution->premium_voluntary_ss_contribution ?? 0);
             }
 
-            // Preserve manual edits
+            // =========================
+            // PRESERVE MANUAL ENTRIES
+            // =========================
+
             $existingPayroll = Payroll::where('employee_id', $employee->id)
                 ->where('payroll_period_id', $period->id)
                 ->first();
@@ -100,33 +127,53 @@ class PayrollService
             $cashAdvance = $existingPayroll->cash_advance ?? 0;
             $shortages = $existingPayroll->shortages ?? 0;
 
-            $totalDeductionsWithManual = $totalDeductions + $cashAdvance + $shortages;
+            $totalDeductionsWithManual =
+                $totalDeductions +
+                $cashAdvance +
+                $shortages;
 
-            // Net Pay
+            // =========================
+            // NET PAY
+            // =========================
+
             $netPay = $grossPay - $totalDeductionsWithManual;
 
-            // Save payroll data
+            // =========================
+            // SAVE PAYROLL
+            // =========================
+
             $payrollData = [
+
                 'employee_id' => $employee->id,
                 'payroll_period_id' => $period->id,
+
                 'days_worked' => $daysWorked,
                 'days_absent' => $daysAbsent,
+
                 'undertime_hours' => $undertimeHours,
                 'undertime_deduction' => round($undertimeDeduction, 2),
+
                 'overtime_hours' => $dtrs->sum('overtime_hours'),
+                'sunday_ot_hours' => $dtrs->sum('sunday_ot_hours'),
                 'night_diff_hours' => $dtrs->sum('night_diff_hours'),
                 'night_diff_ot_hours' => $dtrs->sum('night_diff_ot_hours'),
+
                 'daily_rate' => $dailyRate,
+
                 'basic_salary' => round($basicSalaryAfterUndertime, 2),
+
                 'overtime_salary' => round($overtimeSalary, 2),
+                'sunday_ot_salary' => round($sundayOtSalary, 2),
                 'night_diff_salary' => round($nightDiffSalary, 2),
                 'night_diff_ot_salary' => round($nightDiffOtSalary, 2),
+
                 'gross_pay' => round($grossPay, 2),
 
                 'cash_advance' => $cashAdvance,
                 'shortages' => $shortages,
 
                 'total_deductions' => round($totalDeductionsWithManual, 2),
+
                 'net_pay' => round($netPay, 2),
             ];
 
@@ -139,7 +186,10 @@ class PayrollService
             );
         }
 
-        // ✅ FINAL STEP: UPDATE PAYROLL PERIOD STATUS
+        // =========================
+        // FINALIZE PAYROLL PERIOD
+        // =========================
+
         $period->update([
             'status' => 'finalized'
         ]);

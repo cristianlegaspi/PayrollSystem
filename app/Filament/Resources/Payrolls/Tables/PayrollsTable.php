@@ -55,6 +55,7 @@ class PayrollsTable
                     ->sortable(),
                 TextColumn::make('overtime_salary')
                     ->numeric()
+                    ->label('Regular Overtime Salary')
                     ->money('PHP')
                     ->sortable(),
                 TextColumn::make('night_diff_salary')

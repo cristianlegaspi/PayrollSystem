@@ -49,6 +49,7 @@ class PayrollForm
                     ->visible(false)
                     ->numeric()
                     ->default(0.0),
+
                 TextInput::make('daily_rate')
                     ->required()
                     ->numeric()

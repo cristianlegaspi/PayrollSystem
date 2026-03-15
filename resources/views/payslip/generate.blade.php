@@ -133,17 +133,26 @@ th {
 <td class="right">PHP {{ number_format($data['basic_salary'],2) }}</td>
 </tr>
 <tr>
-<td>Overtime Pay</td>
+<td>Regular Overtime Pay (Mon to Sat)</td>
 <td class="right">PHP {{ number_format($data['overtime_salary'],2) }}</td>
 </tr>
 <tr>
 <td>Night Differential</td>
 <td class="right">PHP {{ number_format($data['night_diff_salary'],2) }}</td>
 </tr>
+
 <tr>
 <td>Night Differential OT</td>
 <td class="right">PHP {{ number_format($data['night_diff_ot_salary'],2) }}</td>
 </tr>
+
+<tr>
+<td>Sunday OT</td>
+<td class="right">PHP {{ number_format($data['sunday_ot_salary'],2) }}</td>
+</tr>
+
+
+
 <tr class="bold">
 <td>GROSS PAY</td>
 <td class="right">PHP {{ number_format($data['gross_pay'],2) }}</td>

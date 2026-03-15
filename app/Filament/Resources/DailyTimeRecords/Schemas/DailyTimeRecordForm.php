@@ -64,6 +64,8 @@ class DailyTimeRecordForm
 
                         DatePicker::make('work_date')
                             ->default(now())
+                            ->reactive()
+                            ->afterStateUpdated(fn($get, $set) => self::compute($get, $set))
                             ->required(),
 
                     ])->columns(3),
@@ -153,6 +155,12 @@ class DailyTimeRecordForm
                             ->readOnly()
                             ->default(0),
 
+                        TextInput::make('sunday_ot_hours')
+                            ->label('Sunday OT Hours')
+                            ->numeric()
+                            ->readOnly()
+                            ->default(0),
+
                         TextInput::make('undertime_hours')
                             ->label('Undertime Hours')
                             ->numeric()
@@ -176,9 +184,12 @@ class DailyTimeRecordForm
             ])->columns(1);
     }
 
-   protected static function compute($get, $set)
+protected static function compute($get, $set)
 {
     $status = $get('status');
+    $workDate = $get('work_date');
+
+    $isSunday = $workDate ? Carbon::parse($workDate)->isSunday() : false;
 
     $totalMinutes = 0;
     $nightMinutes = 0;
@@ -220,51 +231,59 @@ class DailyTimeRecordForm
     $ot = 0;
     $undertime = 0;
     $nightOT = 0;
+    $sundayOT = 0;
 
-    switch ($status) {
+    if ($isSunday && $workedHours > 0) {
 
-        case 'absent_without_pay':
-            $regular = 0;
-            $undertime = 0;
-            $set('remarks', 'Absent Without Pay');
-            break;
+        $sundayOT = $workedHours;
+        $set('remarks', 'Sunday OT');
 
-        case 'absent_with_pay':
-            $regular = 8;
-            $set('remarks', 'Absent With Pay');
-            break;
+    } else {
 
-        case 'legal_holiday':
-            $regular = 8;
-            $ot = $workedHours;
-            $set('remarks', 'Legal Holiday');
-            break;
+        switch ($status) {
 
-        case 'rest_day':
-            $ot = $workedHours;
-            $set('remarks', 'Rest Day');
-            break;
-
-        case 'special_holiday':
-            $ot = $workedHours;
-            $set('remarks', 'Special Holiday');
-            break;
-
-        default:
-
-            if ($workedHours >= 8) {
-                $regular = 8;
-                $ot = round($workedHours - 8, 2);
-                $set('remarks', 'On Duty');
-            } elseif ($workedHours > 0) {
-                $regular = $workedHours;
-                $undertime = round(8 - $workedHours, 2);
-                $set('remarks', 'Undertime');
-            } else {
+            case 'absent_without_pay':
+                $regular = 0;
                 $set('remarks', 'Absent Without Pay');
-            }
+                break;
 
-            break;
+            case 'absent_with_pay':
+                $regular = 8;
+                $set('remarks', 'Absent With Pay');
+                break;
+
+            case 'legal_holiday':
+                $regular = 8;
+                $ot = $workedHours;
+                $set('remarks', 'Legal Holiday');
+                break;
+
+            case 'rest_day':
+                $ot = $workedHours;
+                $set('remarks', 'Rest Day');
+                break;
+
+            case 'special_holiday':
+                $ot = $workedHours;
+                $set('remarks', 'Special Holiday');
+                break;
+
+            default:
+
+                if ($workedHours >= 8) {
+                    $regular = 8;
+                    $ot = round($workedHours - 8, 2);
+                    $set('remarks', 'On Duty');
+                } elseif ($workedHours > 0) {
+                    $regular = $workedHours;
+                    $undertime = round(8 - $workedHours, 2);
+                    $set('remarks', 'Undertime');
+                } else {
+                    $set('remarks', 'Absent Without Pay');
+                }
+
+                break;
+        }
     }
 
     if ($ot > 0 && $nightHours > 0) {
@@ -273,6 +292,7 @@ class DailyTimeRecordForm
 
     $set('total_hours', $regular);
     $set('overtime_hours', $ot);
+    $set('sunday_ot_hours', $sundayOT);
     $set('undertime_hours', $undertime);
     $set('night_diff_hours', $nightHours);
     $set('night_diff_ot_hours', $nightOT);

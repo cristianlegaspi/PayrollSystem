@@ -25,6 +25,9 @@ class Payroll extends Model
         'cash_advance',
         'shortages',
         'net_pay',
+        'sunday_ot_hours',
+        'sunday_ot_salary',
+
     ];
 
     public function employee()

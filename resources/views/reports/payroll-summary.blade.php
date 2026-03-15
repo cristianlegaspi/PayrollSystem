@@ -73,6 +73,7 @@ $field = array_fill_keys($columns, 0);
         // Compute total Overtime including ND and ND OT
         $totalOvertime = ($payroll->overtime_salary ?? 0)
                          + ($payroll->night_diff_salary ?? 0)
+                        + ($payroll->sunday_ot_salary ?? 0)
                          + ($payroll->night_diff_ot_salary ?? 0);
 
         foreach($columns as $col) {

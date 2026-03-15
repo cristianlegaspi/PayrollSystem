@@ -47,8 +47,12 @@ class PayrollInfolist
                 TextEntry::make('night_diff_hours')
                     ->numeric(),
                 TextEntry::make('night_diff_ot_hours')
+                    ->label('Night Differential OT Hours')
                     ->numeric(),
-
+                TextEntry::make('sunday_ot_hours')
+                    ->label('Sunday OT Hours')
+                    ->numeric(),
+           
              ])->columns(2),
 
 
@@ -63,7 +67,15 @@ class PayrollInfolist
                 TextEntry::make('night_diff_salary')
                     ->numeric(),
                 TextEntry::make('night_diff_ot_salary')
+                    ->label('Night Differential OT Salary')
                     ->numeric(),
+                TextEntry::make('sunday_ot_salary')
+                    ->label('Sunday OT Salary')
+                    ->numeric(),
+
+
+
+                    
                 TextEntry::make('gross_pay')
                     ->numeric(),
                TextEntry::make('total_deductions')
