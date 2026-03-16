@@ -73,6 +73,10 @@ class PayrollInfolist
                     ->label('Sunday OT Salary')
                     ->numeric(),
 
+                  TextEntry::make('undertime_deduction')
+                    ->label('Undertime Deduction')
+                    ->numeric(),
+
 
 
                     
@@ -91,6 +95,8 @@ class PayrollInfolist
                 TextEntry::make('cash_advance')
                     ->numeric(),
                 TextEntry::make('shortages')
+                    ->numeric(),
+                 TextEntry::make('other_deduction')
                     ->numeric(),
                 TextEntry::make('net_pay')
                     ->numeric()

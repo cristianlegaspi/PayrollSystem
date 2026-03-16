@@ -25,7 +25,7 @@ Branch: {{ $branch->branch_name }}
 @php
 $columns = [
     'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
-    'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages',
+    'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
     'sss_er', 'sss_ee', 'sss_loan', 'philhealth_er', 'philhealth_ee',
     'pagibig_er', 'pagibig_ee', 'pagibig_loan', 'total_deductions', 'net_pay'
 ];
@@ -48,6 +48,7 @@ $field = array_fill_keys($columns, 0);
         <th>Gross Pay</th>
         <th>Cash Advance</th>
         <th>Shortages</th>
+        <th>Other Deduction</th>
         <th>SSS ER</th>
         <th>SSS EE</th>
         <th>SSS Loan</th>
@@ -68,6 +69,8 @@ $field = array_fill_keys($columns, 0);
         // Calculate dynamic total deductions including cash advance and shortages
         $row_total_deductions = ($payroll->total_deductions ?? 0) 
                                 + ($payroll->cash_advance ?? 0) 
+
+                                + ($payroll->other_deduction ?? 0) 
                                 + ($payroll->shortages ?? 0);
 
         // Compute total Overtime including ND and ND OT
@@ -107,6 +110,7 @@ $field = array_fill_keys($columns, 0);
         <td>{{ number_format($payroll->gross_pay,2) }}</td>
         <td>{{ number_format($payroll->cash_advance,2) }}</td>
         <td>{{ number_format($payroll->shortages ?? 0,2) }}</td>
+          <td>{{ number_format($payroll->other_deduction ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->sss_er ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->sss_ee ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->sss_loan ?? 0,2) }}</td>

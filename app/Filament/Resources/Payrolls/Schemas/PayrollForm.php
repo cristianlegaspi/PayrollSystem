@@ -93,6 +93,10 @@ class PayrollForm
                     ->numeric()
                     ->default(0),
 
+                 TextInput::make('other_deduction')
+                    ->numeric()
+                    ->default(0),
+
                 TextInput::make('net_pay')
                     ->required()
                     ->numeric()

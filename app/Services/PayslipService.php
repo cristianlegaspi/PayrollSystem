@@ -23,6 +23,7 @@ class PayslipService
             'days_worked' => $payroll->days_worked,
             'days_absent' => $payroll->days_absent,
             'undertime_hours' => $payroll->undertime_hours,
+            'undertime_deduction' => $payroll->undertime_deduction,
 
             // EARNINGS
             'basic_salary' => $payroll->basic_salary,
@@ -40,9 +41,12 @@ class PayslipService
             'pagibig_loan' => $contribution->pagibig_loan ?? 0,
             'cash_advance' => $payroll->cash_advance ?? 0,
             'shortages' => $payroll->shortages ?? 0,
+            'other_deduction' => $payroll->other_deduction ?? 0,
 
             'total_deductions' => $payroll->total_deductions +
                                   ($payroll->cash_advance ?? 0) +
+                                 ($payroll->other_deduction ?? 0) +
+
                                   ($payroll->shortages ?? 0),
 
             'net_pay' => $payroll->net_pay,

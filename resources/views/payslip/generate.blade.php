@@ -129,9 +129,20 @@ th {
 <td class="right">Amount</td>
 </tr>
 <tr>
-<td>Basic Salary ({{ $data['days_worked'] }} Days)</td>
+<td>Basic Salary ({{ $data['days_worked'] }} Day)</td>
 <td class="right">PHP {{ number_format($data['basic_salary'],2) }}</td>
 </tr>
+
+<tr>
+<td>
+Undertime Deduction 
+({{ number_format($data['daily_rate'] / 8,2) }} × {{ $data['undertime_hours'] }} hrs)
+</td>
+<td class="right">
+PHP {{ number_format($data['undertime_deduction'],2) }}
+</td>
+</tr>
+
 <tr>
 <td>Regular Overtime Pay (Mon to Sat)</td>
 <td class="right">PHP {{ number_format($data['overtime_salary'],2) }}</td>
@@ -163,10 +174,14 @@ th {
 <tr class="section">
 <td colspan="2">DEDUCTIONS</td>
 </tr>
+
 <tr>
 <td>SSS (EE Share)</td>
 <td class="right">PHP {{ number_format($data['sss_ee'],2) }}</td>
 </tr>
+
+
+
 <tr>
 <td>PhilHealth (EE Share)</td>
 <td class="right">PHP {{ number_format($data['philhealth_ee'],2) }}</td>
@@ -191,6 +206,13 @@ th {
 <td>Shortages</td>
 <td class="right">PHP {{ number_format($data['shortages'],2) }}</td>
 </tr>
+
+<tr>
+<td>Other Deduction</td>
+<td class="right">PHP {{ number_format($data['other_deduction'],2) }}</td>
+</tr>
+
+
 <tr class="bold">
 <td>TOTAL DEDUCTIONS</td>
 <td class="right">PHP {{ number_format($data['total_deductions'],2) }}</td>

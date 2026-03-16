@@ -68,6 +68,11 @@ class PayrollsTable
                     ->money('PHP')
                      ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
+                  TextColumn::make('undertime_deduction')
+                    ->numeric()
+                    ->money('PHP')
+                     ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
                 TextColumn::make('gross_pay')
                     ->numeric()
                     ->money('PHP')
@@ -84,6 +89,12 @@ class PayrollsTable
                      ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                       TextColumn::make('shortages')
+                    ->numeric()
+                     ->badge()
+                    ->money('PHP')
+                     ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
+                  TextColumn::make('other_deduction')
                     ->numeric()
                      ->badge()
                     ->money('PHP')

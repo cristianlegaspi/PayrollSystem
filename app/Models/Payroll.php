@@ -24,9 +24,11 @@ class Payroll extends Model
         'total_deductions',
         'cash_advance',
         'shortages',
+        'other_deduction',
         'net_pay',
         'sunday_ot_hours',
         'sunday_ot_salary',
+         'undertime_deduction',
 
     ];
 
@@ -62,8 +64,9 @@ class Payroll extends Model
             // Recompute net pay whenever record is saved
             $cashAdvance = $payroll->cash_advance ?? 0;
             $shortages = $payroll->shortages ?? 0;
+            $other_deduction = $payroll->other_deduction ?? 0;
 
-            $payroll->net_pay = $payroll->gross_pay - ($payroll->total_deductions + $cashAdvance + $shortages);
+            $payroll->net_pay = $payroll->gross_pay - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
         });
     }
 }
