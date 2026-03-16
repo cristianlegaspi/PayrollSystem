@@ -32,19 +32,22 @@ class EmployeeOverview extends StatsOverviewWidget
             ->selectRaw('
                 SUM(basic_salary) as total_basic,
                 SUM(overtime_salary) as total_ot,
+                SUM(sunday_ot_salary) as total_sot,
                 SUM(night_diff_salary + night_diff_ot_salary) as total_nd,
                 SUM(gross_pay) as total_gross,
                 SUM(cash_advance) as total_ca,
                 SUM(shortages) as total_shortages,
                 SUM(total_deductions) as total_deduct,
                 SUM(net_pay) as total_net
+
+                
             ')
             ->first();
 
         $periodLabel = $start->format('M d') . ' - ' . $end->format('M d, Y');
 
         // Combine OT + ND + ND OT for Total Overtime stat
-        $totalOvertimeCombined = ($totals->total_ot ?? 0) + ($totals->total_nd ?? 0);
+        $totalOvertimeCombined = ($totals->total_ot ?? 0) + ($totals->total_nd ?? 0) + ($totals->total_sot ?? 0);
 
         return [
             // 1. Period Duration
