@@ -38,6 +38,8 @@ class EmployeeOverview extends StatsOverviewWidget
                 SUM(cash_advance) as total_ca,
                 SUM(shortages) as total_shortages,
                 SUM(total_deductions) as total_deduct,
+                SUM(other_deduction) as total_otherdeduct,
+                
                 SUM(net_pay) as total_net
 
                 
@@ -48,6 +50,11 @@ class EmployeeOverview extends StatsOverviewWidget
 
         // Combine OT + ND + ND OT for Total Overtime stat
         $totalOvertimeCombined = ($totals->total_ot ?? 0) + ($totals->total_nd ?? 0) + ($totals->total_sot ?? 0);
+
+        $totaldeductionCombined = ($totals->total_deduct ?? 0) + ($totals->total_otherdeduct ?? 0);
+
+
+
 
         return [
             // 1. Period Duration
@@ -88,8 +95,8 @@ class EmployeeOverview extends StatsOverviewWidget
                 ->color('danger'),
 
             // 7. Total Deductions
-            Stat::make('Total Deductions', '₱' . number_format($totals->total_deduct ?? 0, 2))
-                ->description('SSS, PH, PI & Loans')
+         Stat::make('Total Deductions', '₱' . number_format($totaldeductionCombined, 2))
+                ->description('SSS, PH, PI & Loans, Other Deduction')
                 ->descriptionIcon('heroicon-m-minus-circle')
                 ->color('danger'),
 
