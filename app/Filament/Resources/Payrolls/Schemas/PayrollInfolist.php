@@ -87,6 +87,7 @@ class PayrollInfolist
                             ->state(function (Model $record): float {
                                 return ($record->total_deductions ?? 0) + 
                                        ($record->cash_advance ?? 0) + 
+                                       ($record->other_deduction ?? 0) + 
                                        ($record->shortages ?? 0);
                             })
                             ->money('PHP')
