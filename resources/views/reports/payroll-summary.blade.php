@@ -18,7 +18,7 @@
 </head>
 <body>
 
-<h3 style="text-align:center;margin-bottom:0;">FULLTANK GASOLINE STATION</h3>
+<h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
 Payroll Summary - {{ $period->description }} <br>
 Branch: {{ $branch->branch_name }}
 
@@ -165,11 +165,13 @@ $field = array_fill_keys($columns, 0);
         <td class="text-left">
             <div class="signature-line"></div>
             Approved by:<br>
-            <strong>HAZEL DE LEON OCAMPO</strong><br>
+            <strong>EDUARDO A. OCAMPO</strong><br>
             Authorized Signatory
         </td>
     </tr>
 </table>
+
+
 
 </body>
 </html>

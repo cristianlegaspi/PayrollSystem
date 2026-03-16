@@ -108,7 +108,7 @@ th {
 <body>
 
 <div class="header">
-    <h1>FULLTANK GAS STATION</h1>
+    <h1>E.A OCAMPO ENTERPRISES</h1>
     <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
 </div>
 
