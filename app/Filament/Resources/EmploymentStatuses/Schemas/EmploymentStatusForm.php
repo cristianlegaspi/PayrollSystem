@@ -18,6 +18,7 @@ class EmploymentStatusForm
                     ->schema([
               
                 TextInput::make('name')
+                    ->unique()
                     ->required(),
             ]),
 

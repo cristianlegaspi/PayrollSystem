@@ -23,7 +23,8 @@ class ContributionForm
                             ->label('Employee')
                              ->relationship('employee', 'full_name')
                             ->required()
-                            ->searchable()
+                            ->unique()
+                           
                             ->placeholder('Select an employee'),
 
                     ])->columns(1),

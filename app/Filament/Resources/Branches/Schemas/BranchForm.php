@@ -16,6 +16,7 @@ class BranchForm
               Section::make('Branch Details')
                     ->schema([
                 TextInput::make('branch_name')
+                ->unique()
                     ->required(),
             ]),
 
