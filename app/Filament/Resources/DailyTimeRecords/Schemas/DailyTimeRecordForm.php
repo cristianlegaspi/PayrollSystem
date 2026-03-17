@@ -89,11 +89,11 @@ class DailyTimeRecordForm
                             ->afterStateUpdated(fn($get, $set) => self::compute($get, $set))
                             ->required(),
 
-                        // TextInput::make('remarks')
-                        //     ->label('System Remarks')
-                        //     ->readOnly()
-                        //     ->visible(false)
-                        //     ->extraAttributes(['class' => 'font-bold text-primary-600']),
+                        TextInput::make('remarks')
+                            ->label('System Remarks')
+                            ->readOnly()
+                            ->visible(false)
+                            ->extraAttributes(['class' => 'font-bold text-primary-600']),
 
                     ])->columns(1),
 
