@@ -30,8 +30,16 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // ->colors([
+            //     'primary' => Color::Amber,
+            // ])
             ->colors([
-                'primary' => Color::Amber,
+            'danger' => Color::Red,
+            'gray' => Color::Slate,
+            'info' => Color::Blue,
+            'primary' => Color::Blue,
+            'success' => Color::Emerald,
+            'warning' => Color::Orange,
             ])
             
             ->brandName('E.A OCAMPO ENTERPRISES')
