@@ -24,7 +24,6 @@ class DailyTimeRecordForm
                         Select::make('branch_id')
                             ->label('Branch')
                             ->options(function () {
-
                                 $user = Filament::auth()->user();
                                 $roleName = $user->role?->role_name;
 
@@ -36,7 +35,7 @@ class DailyTimeRecordForm
                             })
                             ->default(fn() => Filament::auth()->user()->branch_id)
                             ->reactive()
-                            ->afterStateUpdated(fn($set) => $set('employee_id', null))
+                            ->afterStateUpdated(fn ($set) => $set('employee_id', null))
                             ->required(),
 
                         Select::make('employee_id')
@@ -45,7 +44,6 @@ class DailyTimeRecordForm
                                 name: 'employee',
                                 titleAttribute: 'full_name',
                                 modifyQueryUsing: function ($query, $get) {
-
                                     $user = Filament::auth()->user();
                                     $roleName = $user->role?->role_name;
 
@@ -92,10 +90,9 @@ class DailyTimeRecordForm
                         TextInput::make('remarks')
                             ->label('System Remarks')
                             ->readOnly()
-                            ->visible(false)
                             ->extraAttributes(['class' => 'font-bold text-primary-600']),
 
-                    ])->columns(1),
+                    ])->columns(2),
 
                 Section::make('Biometrics Details')
                     ->schema([
@@ -193,7 +190,7 @@ class DailyTimeRecordForm
 
         $totalMinutes = 0;
         $nightMinutes = 0;
-        $breakMinutes = 60; // 1 hour break in minutes
+        $breakMinutes = 60; // 1 hour break per shift if shift > 5 hours
 
         for ($i = 1; $i <= 3; $i++) {
 
@@ -209,10 +206,9 @@ class DailyTimeRecordForm
                 $out->addDay();
             }
 
-            // calculate minutes for this shift
             $shiftMinutes = $in->diffInMinutes($out);
 
-            // subtract 1 hour break if shift is longer than 5 hours
+            // subtract break if shift longer than 5 hours
             if ($shiftMinutes > 5 * 60) {
                 $shiftMinutes -= $breakMinutes;
             }
@@ -220,7 +216,6 @@ class DailyTimeRecordForm
             $totalMinutes += $shiftMinutes;
 
             $cursor = $in->copy();
-
             while ($cursor < $out) {
                 $hour = (int) $cursor->format('H');
                 if ($hour >= 22 || $hour < 6) {
@@ -238,49 +233,50 @@ class DailyTimeRecordForm
         $undertime = 0;
         $nightOT = 0;
         $sundayOT = 0;
+        $remarks = '';
 
         if ($isSunday && $workedHours > 0) {
             $sundayOT = $workedHours;
-            $set('remarks', 'Sunday OT');
+            $remarks = 'Sunday OT';
         } else {
             switch ($status) {
                 case 'absent_without_pay':
                     $regular = 0;
-                    $set('remarks', 'Absent Without Pay');
+                    $remarks = 'Absent Without Pay';
                     break;
 
                 case 'absent_with_pay':
                     $regular = 8;
-                    $set('remarks', 'Absent With Pay');
+                    $remarks = 'Absent With Pay';
                     break;
 
                 case 'legal_holiday':
                     $regular = 8;
                     $ot = $workedHours;
-                    $set('remarks', 'Legal Holiday');
+                    $remarks = 'Legal Holiday';
                     break;
 
                 case 'rest_day':
                     $ot = $workedHours;
-                    $set('remarks', 'Rest Day');
+                    $remarks = 'Rest Day';
                     break;
 
                 case 'special_holiday':
                     $ot = $workedHours;
-                    $set('remarks', 'Special Holiday');
+                    $remarks = 'Special Holiday';
                     break;
 
                 default:
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
-                        $set('remarks', 'On Duty');
+                        $remarks = 'On Duty';
                     } elseif ($workedHours > 0) {
                         $regular = $workedHours;
                         $undertime = round(8 - $workedHours, 2);
-                        $set('remarks', 'Undertime');
+                        $remarks = 'Undertime';
                     } else {
-                        $set('remarks', 'Absent Without Pay');
+                        $remarks = 'Absent Without Pay';
                     }
                     break;
             }
@@ -290,11 +286,13 @@ class DailyTimeRecordForm
             $nightOT = min($nightHours, $ot);
         }
 
+        // set all computed fields
         $set('total_hours', $regular);
         $set('overtime_hours', $ot);
         $set('sunday_ot_hours', $sundayOT);
         $set('undertime_hours', $undertime);
         $set('night_diff_hours', $nightHours);
         $set('night_diff_ot_hours', $nightOT);
+        $set('remarks', $remarks); // always set
     }
 }
