@@ -16,4 +16,7 @@ class ListPositions extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Position Management';
+    protected ?string $subheading = 'Overview of All Positions';
 }

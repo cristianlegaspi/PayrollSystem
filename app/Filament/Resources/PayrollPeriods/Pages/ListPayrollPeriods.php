@@ -16,4 +16,7 @@ class ListPayrollPeriods extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Payroll Period Management';
+    protected ?string $subheading = 'Overview of All Payroll Period';
 }

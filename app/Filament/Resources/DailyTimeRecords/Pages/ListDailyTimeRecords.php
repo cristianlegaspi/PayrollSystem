@@ -16,4 +16,7 @@ class ListDailyTimeRecords extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Daily Time Record (DTR) Management';
+    protected ?string $subheading = 'Overview of All DTR';
 }

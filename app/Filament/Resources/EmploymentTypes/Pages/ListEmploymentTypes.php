@@ -16,4 +16,8 @@ class ListEmploymentTypes extends ListRecords
             CreateAction::make(),
         ];
     }
+
+    protected ?string $heading = 'Employment Types Management';
+    protected ?string $subheading = 'Overview of All Employment Types';
+
 }

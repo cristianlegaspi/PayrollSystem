@@ -16,4 +16,7 @@ class ListContributions extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Contribution Management';
+    protected ?string $subheading = 'Overview of All Contributions';
 }

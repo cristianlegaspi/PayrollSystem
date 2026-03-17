@@ -16,4 +16,7 @@ class ListEmployees extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Employee Management';
+    protected ?string $subheading = 'Overview of All Employees';
 }

@@ -16,4 +16,7 @@ class ListBranches extends ListRecords
             CreateAction::make(),
         ];
     }
+
+    protected ?string $heading = 'Branch Management';
+    protected ?string $subheading = 'Overview of All Available Branches';
 }

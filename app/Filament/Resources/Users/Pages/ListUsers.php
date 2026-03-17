@@ -16,4 +16,7 @@ class ListUsers extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'User Management';
+    protected ?string $subheading = 'Overview of All Users';
 }

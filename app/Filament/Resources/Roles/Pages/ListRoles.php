@@ -16,4 +16,7 @@ class ListRoles extends ListRecords
             CreateAction::make(),
         ];
     }
+
+     protected ?string $heading = 'Role Management';
+    protected ?string $subheading = 'Overview of All Roles';
 }

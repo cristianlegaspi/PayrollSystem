@@ -102,5 +102,9 @@ Action::make('printPayrollReport')
                 }),
 
         ];
+        
     }
+
+     protected ?string $heading = 'Payroll Management';
+    protected ?string $subheading = 'Overview of All Payroll';
 }
