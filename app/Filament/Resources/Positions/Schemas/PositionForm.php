@@ -15,6 +15,7 @@ class PositionForm
             Section::make('Position Details')
                     ->schema([
                 TextInput::make('position_name')
+                ->unique()
                     ->required(),
               ]),
             ])->columns(1);

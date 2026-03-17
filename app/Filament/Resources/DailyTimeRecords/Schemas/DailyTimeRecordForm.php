@@ -36,7 +36,7 @@ class DailyTimeRecordForm
                             })
                             ->default(fn() => Filament::auth()->user()->branch_id)
                             ->reactive()
-                            ->afterStateUpdated(fn ($set) => $set('employee_id', null))
+                            ->afterStateUpdated(fn($set) => $set('employee_id', null))
                             ->required(),
 
                         Select::make('employee_id')
@@ -89,12 +89,13 @@ class DailyTimeRecordForm
                             ->afterStateUpdated(fn($get, $set) => self::compute($get, $set))
                             ->required(),
 
-                        TextInput::make('remarks')
-                            ->label('System Remarks')
-                            ->readOnly()
-                            ->extraAttributes(['class' => 'font-bold text-primary-600']),
+                        // TextInput::make('remarks')
+                        //     ->label('System Remarks')
+                        //     ->readOnly()
+                        //     ->visible(false)
+                        //     ->extraAttributes(['class' => 'font-bold text-primary-600']),
 
-                    ])->columns(2),
+                    ])->columns(1),
 
                 Section::make('Biometrics Details')
                     ->schema([
@@ -184,117 +185,116 @@ class DailyTimeRecordForm
             ])->columns(1);
     }
 
-protected static function compute($get, $set)
-{
-    $status = $get('status');
-    $workDate = $get('work_date');
+    protected static function compute($get, $set)
+    {
+        $status = $get('status');
+        $workDate = $get('work_date');
+        $isSunday = $workDate ? Carbon::parse($workDate)->isSunday() : false;
 
-    $isSunday = $workDate ? Carbon::parse($workDate)->isSunday() : false;
+        $totalMinutes = 0;
+        $nightMinutes = 0;
+        $breakMinutes = 60; // 1 hour break in minutes
 
-    $totalMinutes = 0;
-    $nightMinutes = 0;
+        for ($i = 1; $i <= 3; $i++) {
 
-    for ($i = 1; $i <= 3; $i++) {
+            $timeIn = $get("shift{$i}_time_in");
+            $timeOut = $get("shift{$i}_time_out");
 
-        $timeIn = $get("shift{$i}_time_in");
-        $timeOut = $get("shift{$i}_time_out");
+            if (!$timeIn || !$timeOut) continue;
 
-        if (!$timeIn || !$timeOut) continue;
+            $in = Carbon::parse($timeIn);
+            $out = Carbon::parse($timeOut);
 
-        $in = Carbon::parse($timeIn);
-        $out = Carbon::parse($timeOut);
-
-        if ($out <= $in) {
-            $out->addDay();
-        }
-
-        $totalMinutes += $in->diffInMinutes($out);
-
-        $cursor = $in->copy();
-
-        while ($cursor < $out) {
-
-            $hour = (int) $cursor->format('H');
-
-            if ($hour >= 22 || $hour < 6) {
-                $nightMinutes++;
+            if ($out <= $in) {
+                $out->addDay();
             }
 
-            $cursor->addMinute();
-        }
-    }
+            // calculate minutes for this shift
+            $shiftMinutes = $in->diffInMinutes($out);
 
-    $workedHours = round($totalMinutes / 60, 2);
-    $nightHours = round($nightMinutes / 60, 2);
+            // subtract 1 hour break if shift is longer than 5 hours
+            if ($shiftMinutes > 5 * 60) {
+                $shiftMinutes -= $breakMinutes;
+            }
 
-    $regular = 0;
-    $ot = 0;
-    $undertime = 0;
-    $nightOT = 0;
-    $sundayOT = 0;
+            $totalMinutes += $shiftMinutes;
 
-    if ($isSunday && $workedHours > 0) {
+            $cursor = $in->copy();
 
-        $sundayOT = $workedHours;
-        $set('remarks', 'Sunday OT');
-
-    } else {
-
-        switch ($status) {
-
-            case 'absent_without_pay':
-                $regular = 0;
-                $set('remarks', 'Absent Without Pay');
-                break;
-
-            case 'absent_with_pay':
-                $regular = 8;
-                $set('remarks', 'Absent With Pay');
-                break;
-
-            case 'legal_holiday':
-                $regular = 8;
-                $ot = $workedHours;
-                $set('remarks', 'Legal Holiday');
-                break;
-
-            case 'rest_day':
-                $ot = $workedHours;
-                $set('remarks', 'Rest Day');
-                break;
-
-            case 'special_holiday':
-                $ot = $workedHours;
-                $set('remarks', 'Special Holiday');
-                break;
-
-            default:
-
-                if ($workedHours >= 8) {
-                    $regular = 8;
-                    $ot = round($workedHours - 8, 2);
-                    $set('remarks', 'On Duty');
-                } elseif ($workedHours > 0) {
-                    $regular = $workedHours;
-                    $undertime = round(8 - $workedHours, 2);
-                    $set('remarks', 'Undertime');
-                } else {
-                    $set('remarks', 'Absent Without Pay');
+            while ($cursor < $out) {
+                $hour = (int) $cursor->format('H');
+                if ($hour >= 22 || $hour < 6) {
+                    $nightMinutes++;
                 }
-
-                break;
+                $cursor->addMinute();
+            }
         }
-    }
 
-    if ($ot > 0 && $nightHours > 0) {
-        $nightOT = min($nightHours, $ot);
-    }
+        $workedHours = round($totalMinutes / 60, 2);
+        $nightHours = round($nightMinutes / 60, 2);
 
-    $set('total_hours', $regular);
-    $set('overtime_hours', $ot);
-    $set('sunday_ot_hours', $sundayOT);
-    $set('undertime_hours', $undertime);
-    $set('night_diff_hours', $nightHours);
-    $set('night_diff_ot_hours', $nightOT);
-}
+        $regular = 0;
+        $ot = 0;
+        $undertime = 0;
+        $nightOT = 0;
+        $sundayOT = 0;
+
+        if ($isSunday && $workedHours > 0) {
+            $sundayOT = $workedHours;
+            $set('remarks', 'Sunday OT');
+        } else {
+            switch ($status) {
+                case 'absent_without_pay':
+                    $regular = 0;
+                    $set('remarks', 'Absent Without Pay');
+                    break;
+
+                case 'absent_with_pay':
+                    $regular = 8;
+                    $set('remarks', 'Absent With Pay');
+                    break;
+
+                case 'legal_holiday':
+                    $regular = 8;
+                    $ot = $workedHours;
+                    $set('remarks', 'Legal Holiday');
+                    break;
+
+                case 'rest_day':
+                    $ot = $workedHours;
+                    $set('remarks', 'Rest Day');
+                    break;
+
+                case 'special_holiday':
+                    $ot = $workedHours;
+                    $set('remarks', 'Special Holiday');
+                    break;
+
+                default:
+                    if ($workedHours >= 8) {
+                        $regular = 8;
+                        $ot = round($workedHours - 8, 2);
+                        $set('remarks', 'On Duty');
+                    } elseif ($workedHours > 0) {
+                        $regular = $workedHours;
+                        $undertime = round(8 - $workedHours, 2);
+                        $set('remarks', 'Undertime');
+                    } else {
+                        $set('remarks', 'Absent Without Pay');
+                    }
+                    break;
+            }
+        }
+
+        if ($ot > 0 && $nightHours > 0) {
+            $nightOT = min($nightHours, $ot);
+        }
+
+        $set('total_hours', $regular);
+        $set('overtime_hours', $ot);
+        $set('sunday_ot_hours', $sundayOT);
+        $set('undertime_hours', $undertime);
+        $set('night_diff_hours', $nightHours);
+        $set('night_diff_ot_hours', $nightOT);
+    }
 }

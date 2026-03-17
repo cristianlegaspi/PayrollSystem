@@ -15,6 +15,7 @@ class RoleForm
              Section::make('Role Details')
                     ->schema([
                 TextInput::make('role_name')
+                ->unique()
                     ->required(),
             ]),
 
