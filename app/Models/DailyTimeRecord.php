@@ -21,7 +21,6 @@ class DailyTimeRecord extends Model
         'night_diff_hours',
         'night_diff_ot_hours',
         'sunday_ot_hours',
-
         'remarks',
         'status',
     ];
