@@ -44,6 +44,9 @@ class ListDailyTimeRecords extends ListRecords
                                         ? $query->where('branch_id', $get('branch_id'))
                                         : $query;
                                 }
+                                  if ($user->branch?->branch_name === 'All Branch') {
+                                    return $query;
+                                }
 
                                 // Normal users: only employees in their branch
                                 return $query->where('branch_id', $user->branch_id);
