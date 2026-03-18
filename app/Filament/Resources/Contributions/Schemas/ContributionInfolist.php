@@ -29,7 +29,7 @@ class ContributionInfolist
 
 
                         TextEntry::make('sss_er')
-                            ->label('EE'),
+                            ->label('ER'),
 
                         TextEntry::make('premium_voluntary_ss_contribution')
                             ->label('Premium SS Contribution'),

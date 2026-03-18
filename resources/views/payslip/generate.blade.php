@@ -189,13 +189,23 @@ Undertime Deduction
 </tr>
 
 <tr>
-<td>SSS Loan</td>
-<td class="right">PHP {{ number_format($data['sss_loan'],2) }}</td>
+<td>SSS Premium Contribution</td>
+<td class="right">PHP {{ number_format($data['premium_voluntary_ss_contribution'],2) }}</td>
+</tr>
+
+<tr>
+<td>SSS Salary Loan</td>
+<td class="right">PHP {{ number_format($data['sss_salary_loan'],2) }}</td>
+</tr>
+
+<tr>
+<td>SSS Calamity Loan</td>
+<td class="right">PHP {{ number_format($data['sss_calamity_loan'],2) }}</td>
 </tr>
 
 <tr>
 <td>Pag-IBIG Loan</td>
-<td class="right">PHP {{ number_format($data['pagibig_loan'],2) }}</td>
+<td class="right">PHP {{ number_format($data['pagibig_salary_loan'],2) }}</td>
 </tr>
 
 <tr>

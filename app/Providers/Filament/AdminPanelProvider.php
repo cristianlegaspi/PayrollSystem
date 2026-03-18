@@ -30,17 +30,17 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
-            // ->colors([
-            //     'primary' => Color::Amber,
-            // ])
             ->colors([
-            'danger' => Color::Red,
-            'gray' => Color::Slate,
-            'info' => Color::Blue,
-            'primary' => Color::Blue,
-            'success' => Color::Emerald,
-            'warning' => Color::Orange,
+                'primary' => Color::Amber,
             ])
+            // ->colors([
+            // 'danger' => Color::Red,
+            // 'gray' => Color::Slate,
+            // 'info' => Color::Blue,
+            // 'primary' => Color::Blue,
+            // 'success' => Color::Emerald,
+            // 'warning' => Color::Orange,
+            // ])
             
             ->brandName('E.A OCAMPO ENTERPRISES')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')

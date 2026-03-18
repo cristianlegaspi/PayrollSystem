@@ -26,8 +26,8 @@ Branch: {{ $branch->branch_name }}
 $columns = [
     'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
     'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
-    'sss_er', 'sss_ee', 'sss_loan', 'philhealth_er', 'philhealth_ee',
-    'pagibig_er', 'pagibig_ee', 'pagibig_loan', 'total_deductions', 'net_pay'
+    'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 'philhealth_er', 'philhealth_ee',
+    'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 'total_deductions', 'net_pay'
 ];
 
 $grand = array_fill_keys($columns, 0);
@@ -51,12 +51,14 @@ $field = array_fill_keys($columns, 0);
         <th>Other Deduction</th>
         <th>SSS ER</th>
         <th>SSS EE</th>
-        <th>SSS Loan</th>
+        <th>Premium SS Contribution</th>
+        <th>SSS Salary Loan</th>
+        <th>SSS Salary Calamity Loan</th>
         <th>PhilHealth ER</th>
         <th>PhilHealth EE</th>
         <th>Pagibig ER</th>
         <th>Pagibig EE</th>
-        <th>Pagibig Loan</th>
+        <th>Pagibig Salary Loan</th>
         <th>Total Deduction</th>
         <th>Net Pay</th>
         <th>Signature</th>
@@ -81,9 +83,9 @@ $field = array_fill_keys($columns, 0);
 
         foreach($columns as $col) {
             $value = match($col) {
-                'sss_er','sss_ee','sss_loan',
-                'philhealth_er','philhealth_ee',
-                'pagibig_er','pagibig_ee','pagibig_loan'
+                'sss_er','sss_ee','sss_salary_loan', 'premium_voluntary_ss_contribution',
+                'philhealth_er','philhealth_ee', 'sss_calamity_loan',
+                'pagibig_er','pagibig_ee','pagibig_salary_loan'
                     => $payroll->contribution->$col ?? 0,
                 
                 // Override total_deductions with the new calculated sum
@@ -113,12 +115,14 @@ $field = array_fill_keys($columns, 0);
           <td>{{ number_format($payroll->other_deduction ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->sss_er ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->sss_ee ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->sss_loan ?? 0,2) }}</td>
+        <td>{{ number_format($payroll->contribution->premium_voluntary_ss_contribution ?? 0,2) }}</td>
+        <td>{{ number_format($payroll->contribution->sss_salary_loan ?? 0,2) }}</td>
+         <td>{{ number_format($payroll->contribution->sss_calamity_loan ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->philhealth_er ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->philhealth_ee ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->pagibig_er ?? 0,2) }}</td>
         <td>{{ number_format($payroll->contribution->pagibig_ee ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->pagibig_loan ?? 0,2) }}</td>
+        <td>{{ number_format($payroll->contribution->pagibig_salary_loan ?? 0,2) }}</td>
         <td class="bold">{{ number_format($row_total_deductions, 2) }}</td>
         <td class="bold">{{ number_format($payroll->net_pay, 2) }}</td>
         <td class="signature"></td>
