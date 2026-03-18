@@ -13,7 +13,7 @@ class EmployeePolicy
      */
     public function viewAny(User $user): bool
     {
-         return in_array($user->role->role_name, ['Admin', 'Super Admin']);
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -21,7 +21,7 @@ class EmployeePolicy
      */
     public function view(User $user, Employee $employee): bool
     {
-          return in_array($user->role->role_name, ['Admin', 'Super Admin']);
+           return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**

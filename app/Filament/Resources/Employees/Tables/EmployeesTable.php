@@ -8,6 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Filament\Tables\Filters\SelectFilter;
 
 class EmployeesTable
 {
@@ -63,7 +64,17 @@ class EmployeesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                //
+                SelectFilter::make('position_id')
+                    ->label('Position')
+                    ->relationship('position', 'position_name')
+                    ->searchable()
+                    ->preload(),
+
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
+                    ->relationship('branch', 'branch_name')
+                    ->searchable()
+                    ->preload(),
             ])
             ->recordActions([
                 ViewAction::make(),

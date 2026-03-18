@@ -12,6 +12,7 @@ use App\Models\PayrollPeriod;
 use App\Models\Payroll;
 use App\Models\Branch;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class ListPayrolls extends ListRecords
 {
@@ -62,6 +63,13 @@ Action::make('printPayrollReport')
                 ->label('Generate Payroll')
                 ->icon('heroicon-o-currency-dollar')
                 ->color('primary')
+
+
+                // ✅ ROLE-BASED VISIBILITY
+                ->visible(fn () => 
+                    Auth::check() &&
+                    in_array(optional(Auth::user()->role)->role_name, ['Admin', 'Super Admin'])
+                )
 
                 ->form([
                     Select::make('payroll_period_id')

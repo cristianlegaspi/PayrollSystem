@@ -29,7 +29,7 @@ class DailyTimeRecordPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Staff']);
     }
 
     /**
@@ -37,7 +37,7 @@ class DailyTimeRecordPolicy
      */
     public function update(User $user, DailyTimeRecord $dailyTimeRecord): bool
     {
-         return in_array($user->role->role_name, ['Admin', 'Super Admin']);
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Staff']);
     }
 
     /**

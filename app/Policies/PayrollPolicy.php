@@ -13,7 +13,7 @@ class PayrollPolicy
      */
     public function viewAny(User $user): bool
     {
-       return in_array($user->role->role_name, ['Admin', 'Super Admin']);
+       return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -21,7 +21,7 @@ class PayrollPolicy
      */
     public function view(User $user, Payroll $payroll): bool
     {
-       return in_array($user->role->role_name, ['Admin', 'Super Admin']);
+      return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
