@@ -86,7 +86,8 @@ class EmployeeOverview extends StatsOverviewWidget
             Stat::make('Period Duration', "{$calendarDays} Days")
                 ->description($periodLabel)
                 ->descriptionIcon('heroicon-m-calendar-days')
-                ->color('primary'),
+                ->color('primary')
+                ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
                 
 
             Stat::make('Total Basic Salary', '₱' . number_format($totals['total_basic'], 2))
