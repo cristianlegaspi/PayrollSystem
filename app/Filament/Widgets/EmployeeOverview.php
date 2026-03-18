@@ -123,7 +123,7 @@ class EmployeeOverview extends StatsOverviewWidget
             //     ->descriptionIcon('heroicon-m-user')
             //     ->color('danger'),
 
-            Stat::make('Total SSS ER', '₱' . number_format($totals['total_sss_er'], 2))
+            Stat::make('Total SSS ER Share', '₱' . number_format($totals['total_sss_er'], 2))
                 ->description('Employer SSS contribution')
                 ->descriptionIcon('heroicon-m-building-office')
                 ->color('success'),
@@ -148,7 +148,7 @@ class EmployeeOverview extends StatsOverviewWidget
             //      ->descriptionIcon('heroicon-m-banknotes') // safe icon
             //     ->color('danger'),
 
-            Stat::make('Total PhilHealth ER', '₱' . number_format($totals['total_philhealth_er'], 2))
+            Stat::make('Total PhilHealth ER Share', '₱' . number_format($totals['total_philhealth_er'], 2))
                 ->description('Employer PhilHealth')
                 ->descriptionIcon('heroicon-m-banknotes') // safe icon
                 ->color('success'),
@@ -158,7 +158,7 @@ class EmployeeOverview extends StatsOverviewWidget
             //     ->descriptionIcon('heroicon-m-home')
             //     ->color('danger'),
 
-            Stat::make('Total PagIBIG ER', '₱' . number_format($totals['total_pagibig_er'], 2))
+            Stat::make('Total PagIBIG ER Share', '₱' . number_format($totals['total_pagibig_er'], 2))
                 ->description('Employer PagIBIG')
                 ->descriptionIcon('heroicon-m-home')
                 ->color('success'),
@@ -168,7 +168,7 @@ class EmployeeOverview extends StatsOverviewWidget
             //     ->descriptionIcon('heroicon-m-banknotes')
             //     ->color('danger'),
 
-            Stat::make('Total Net Pay', '₱' . number_format($totals['total_net'], 2))
+            Stat::make('Total Net Pay Disbursement', '₱' . number_format($totals['total_net'], 2))
                 ->description('Final payout amount')
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success')
