@@ -9,6 +9,8 @@ use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Tables\Filters\SelectFilter;
+use App\Models\Branch;
+use App\Models\Position;
 
 class EmployeesTable
 {
@@ -64,17 +66,23 @@ class EmployeesTable
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                SelectFilter::make('position_id')
-                    ->label('Position')
-                    ->relationship('position', 'position_name')
-                    ->searchable()
-                    ->preload(),
-
                 SelectFilter::make('branch_id')
                     ->label('Branch')
-                    ->relationship('branch', 'branch_name')
+                    ->options(function () {
+                        return ['all' => 'All Branch'] + Branch::pluck('branch_name', 'id')->toArray();
+                    })
                     ->searchable()
-                    ->preload(),
+                    ->query(function ($query, $value) {
+                        if ($value && $value !== 'all') {
+                            $query->where('branch_id', $value);
+                        }
+                    }),
+
+                SelectFilter::make('position_id')
+                ->label('Position')
+                ->relationship('position', 'position_name')
+                ->searchable()
+                ->preload(),
             ])
             ->recordActions([
                 ViewAction::make(),
