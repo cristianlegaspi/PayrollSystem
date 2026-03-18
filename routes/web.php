@@ -45,6 +45,7 @@ Route::get('/payroll/print/{period}/{branch}', function (PayrollPeriod $period, 
 })->name('payroll.print')->middleware(['auth']); // Ensure only logged-in users can access
 
 // DTR PDF route
+// DTR PDF route
 Route::get('/dtr/print', function (\Illuminate\Http\Request $request) {
     $user = auth()->user();
     $branchId = $user->branch_id;
@@ -73,12 +74,11 @@ Route::get('/dtr/print', function (\Illuminate\Http\Request $request) {
     // Get records
     $dtrs = $query->orderBy('work_date')->get();
 
-    if ($dtrs->isEmpty()) {
-        return "No DTR records found for your branch and selected criteria.";
-    }
-
-    $pdf = Pdf::loadView('dtr.pdf', ['dtrs' => $dtrs])
-              ->setPaper('a4', 'landscape');
+    // Always generate PDF
+    $pdf = Pdf::loadView('dtr.pdf', [
+        'dtrs' => $dtrs,
+        'noRecordsMessage' => $dtrs->isEmpty() ? "No DTR records found." : null
+    ])->setPaper('a4', 'landscape');
 
     return $pdf->stream('Daily_Time_Records.pdf');
 })->name('dtr.print')->middleware(['auth']);

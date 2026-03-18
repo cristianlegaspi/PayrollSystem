@@ -4,17 +4,33 @@
     <meta charset="utf-8">
     <title>Daily Time Records</title>
     <style>
-        body { font-family: Arial, sans-serif; font-size: 12px; }
+        body { font-family: Arial, sans-serif; font-size: 12px; margin: 0; padding: 20px; }
         table { border-collapse: collapse; width: 100%; margin-bottom: 20px; }
         th, td { border: 1px solid #000; padding: 4px; text-align: center; }
         th { background-color: #f0f0f0; }
         .totals-table td, .totals-table th { border: 1px solid #000; padding: 6px; }
-        .certification { margin-top: 40px; font-size: 12px; line-height: 1.5; }
-        .signature { margin-top: 60px; text-align: left; }
         .employee-header { margin-bottom: 20px; }
         .employee-header p { margin: 2px 0; }
         h3 { text-align: center; margin-bottom: 0px; }
-          h1 { text-align: center; margin-bottom: 0px; }
+        h1 { text-align: center; margin-bottom: 0px; }
+        /* For no DTR records message */
+        .no-dtr-message { 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 70vh; 
+            text-align: center; 
+        }
+        .no-dtr-message p { font-size: 16px; font-weight: bold; }
+        /* Footer */
+        .footer { 
+            text-align: center; 
+            font-size: 10px; 
+            color: #555; 
+            margin-top: 40px; 
+            border-top: 1px solid #ccc; 
+            padding-top: 5px; 
+        }
     </style>
 </head>
 <body>
@@ -104,21 +120,17 @@
         </tbody>
     </table>
 
-    {{-- Certification --}}
-    {{-- <div class="certification">
-        I certify on my honor that the above is a true and correct report of the hours of work performed, 
-        record of which was made daily at the time of arrival at and departure from office.
-    </div> --}}
-
-    {{-- Signature --}}
-    {{-- <div class="signature">
-        <p>Name: ___________________________</p>
-        <p>Signature: _______________________</p>
-    </div> --}}
-
 @else
-    <p>No DTR records available.</p>
+    {{-- No DTR Records Message --}}
+    <div class="no-dtr-message">
+        <p>No DTR records available for your branch and selected criteria.</p>
+    </div>
 @endif
+
+{{-- Footer --}}
+<div class="footer">
+    <p>This DTR is system generated and does not require a signature.</p>
+</div>
 
 </body>
 </html>
