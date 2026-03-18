@@ -64,70 +64,82 @@ $field = array_fill_keys($columns, 0);
         <th>Signature</th>
     </tr>
 
-    @foreach($payrolls as $payroll)
-    @php
-        $type = $payroll->employee->employee_type ?? 'Field';
-        
-        // Calculate dynamic total deductions including cash advance and shortages
-        $row_total_deductions = ($payroll->total_deductions ?? 0) 
-                                + ($payroll->cash_advance ?? 0) 
+  @php
+$startDay = \Carbon\Carbon::parse($period->start_date)->day;
+$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
+$isSecondCutoff = $startDay >= 16;
+@endphp
 
-                                + ($payroll->other_deduction ?? 0) 
-                                + ($payroll->shortages ?? 0);
+@php
+$startDay = \Carbon\Carbon::parse($period->start_date)->day;
+$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
+$isSecondCutoff = $startDay >= 16;
+@endphp
 
-        // Compute total Overtime including ND and ND OT
-        $totalOvertime = ($payroll->overtime_salary ?? 0)
-                         + ($payroll->night_diff_salary ?? 0)
-                        + ($payroll->sunday_ot_salary ?? 0)
-                         + ($payroll->night_diff_ot_salary ?? 0);
+@foreach($payrolls as $payroll)
+@php
+    $type = $payroll->employee->employee_type ?? 'Field';
 
-        foreach($columns as $col) {
-            $value = match($col) {
-                'sss_er','sss_ee','sss_salary_loan', 'premium_voluntary_ss_contribution',
-                'philhealth_er','philhealth_ee', 'sss_calamity_loan',
-                'pagibig_er','pagibig_ee','pagibig_salary_loan'
-                    => $payroll->contribution->$col ?? 0,
-                
-                // Override total_deductions with the new calculated sum
-                'total_deductions' => $row_total_deductions,
-                
-                default => $payroll->$col ?? 0
-            };
+    // ======================
+    // Contributions / Loans based on cutoff
+    // ======================
+    $sss_ee = $isFirstCutoff ? ($payroll->contribution->sss_ee ?? 0) : 0;
+    $philhealth_ee = $isFirstCutoff ? ($payroll->contribution->philhealth_ee ?? 0) : 0;
+    $pagibig_ee = $isFirstCutoff ? ($payroll->contribution->pagibig_ee ?? 0) : 0;
+    $premium_voluntary_ss_contribution = $isFirstCutoff ? ($payroll->contribution->premium_voluntary_ss_contribution ?? 0) : 0;
 
-            $grand[$col] += $value;
-            if($type === 'Admin') { $admin[$col] += $value; } 
-            else { $field[$col] += $value; }
-        }
-    @endphp
+    $sss_er = $isFirstCutoff ? ($payroll->contribution->sss_er ?? 0) : 0;
+    $philhealth_er = $isFirstCutoff ? ($payroll->contribution->philhealth_er ?? 0) : 0;
+    $pagibig_er = $isFirstCutoff ? ($payroll->contribution->pagibig_er ?? 0) : 0;
 
-    <tr>
-        <td class="text-left">{{ $payroll->employee->full_name }}</td>
-        <td>{{ $payroll->days_worked }}</td>
-        <td>{{ $payroll->days_absent }}</td>
-        <td>{{ number_format($payroll->undertime_hours,2) }}</td>
-        <td>{{ number_format($payroll->daily_rate,2) }}</td>
-        <td>{{ number_format($payroll->basic_salary,2) }}</td>
-        <td>{{ number_format($totalOvertime,2) }}</td>
-        <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->gross_pay,2) }}</td>
-        <td>{{ number_format($payroll->cash_advance,2) }}</td>
-        <td>{{ number_format($payroll->shortages ?? 0,2) }}</td>
-          <td>{{ number_format($payroll->other_deduction ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->sss_er ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->sss_ee ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->premium_voluntary_ss_contribution ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->sss_salary_loan ?? 0,2) }}</td>
-         <td>{{ number_format($payroll->contribution->sss_calamity_loan ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->philhealth_er ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->philhealth_ee ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->pagibig_er ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->pagibig_ee ?? 0,2) }}</td>
-        <td>{{ number_format($payroll->contribution->pagibig_salary_loan ?? 0,2) }}</td>
-        <td class="bold">{{ number_format($row_total_deductions, 2) }}</td>
-        <td class="bold">{{ number_format($payroll->net_pay, 2) }}</td>
-        <td class="signature"></td>
-    </tr>
-    @endforeach
+    $sss_salary_loan = $isSecondCutoff ? ($payroll->contribution->sss_salary_loan ?? 0) : 0;
+    $sss_calamity_loan = $isSecondCutoff ? ($payroll->contribution->sss_calamity_loan ?? 0) : 0;
+    $pagibig_salary_loan = $isSecondCutoff ? ($payroll->contribution->pagibig_salary_loan ?? 0) : 0;
+
+    // Manual deductions always included
+    $cash_advance = $payroll->cash_advance ?? 0;
+    $shortages = $payroll->shortages ?? 0;
+    $other_deduction = $payroll->other_deduction ?? 0;
+
+    // Total row deductions
+    $row_total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_voluntary_ss_contribution
+                            + $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan
+                            + $cash_advance + $shortages + $other_deduction;
+
+    $totalOvertime = ($payroll->overtime_salary ?? 0)
+                     + ($payroll->night_diff_salary ?? 0)
+                     + ($payroll->sunday_ot_salary ?? 0)
+                     + ($payroll->night_diff_ot_salary ?? 0);
+@endphp
+
+<tr>
+    <td class="text-left">{{ $payroll->employee->full_name }}</td>
+    <td>{{ $payroll->days_worked }}</td>
+    <td>{{ $payroll->days_absent }}</td>
+    <td>{{ number_format($payroll->undertime_hours,2) }}</td>
+    <td>{{ number_format($payroll->daily_rate,2) }}</td>
+    <td>{{ number_format($payroll->basic_salary,2) }}</td>
+    <td>{{ number_format($totalOvertime,2) }}</td>
+    <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
+    <td>{{ number_format($payroll->gross_pay,2) }}</td>
+    <td>{{ number_format($cash_advance,2) }}</td>
+    <td>{{ number_format($shortages,2) }}</td>
+    <td>{{ number_format($other_deduction,2) }}</td>
+    <td>{{ number_format($sss_er,2) }}</td>
+    <td>{{ number_format($sss_ee,2) }}</td>
+    <td>{{ number_format($premium_voluntary_ss_contribution,2) }}</td>
+    <td>{{ number_format($sss_salary_loan,2) }}</td>
+    <td>{{ number_format($sss_calamity_loan,2) }}</td>
+    <td>{{ number_format($philhealth_er,2) }}</td>
+    <td>{{ number_format($philhealth_ee,2) }}</td>
+    <td>{{ number_format($pagibig_er,2) }}</td>
+    <td>{{ number_format($pagibig_ee,2) }}</td>
+    <td>{{ number_format($pagibig_salary_loan,2) }}</td>
+    <td class="bold">{{ number_format($row_total_deductions,2) }}</td>
+    <td class="bold">{{ number_format($payroll->gross_pay - $row_total_deductions,2) }}</td>
+    <td class="signature"></td>
+</tr>
+@endforeach
 
     {{-- TOTAL ADMIN --}}
     <tr class="bold">
