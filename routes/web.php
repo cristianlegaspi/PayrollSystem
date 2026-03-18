@@ -55,7 +55,7 @@ Route::get('/dtr/print', function (\Illuminate\Http\Request $request) {
     $query = DailyTimeRecord::with('employee');
 
     // Filter by branch (only non-admin users)
-    if (!in_array($user->role?->role_name, ['Admin', 'Super Admin'])) {
+    if (!in_array($user->role?->role_name, ['Admin', 'Super Admin', 'Owner'])) {
         $query->whereHas('employee', fn($q) => $q->where('branch_id', $branchId));
     }
 

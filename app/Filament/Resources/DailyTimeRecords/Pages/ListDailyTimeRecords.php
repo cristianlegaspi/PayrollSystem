@@ -39,7 +39,7 @@ class ListDailyTimeRecords extends ListRecords
                                 $roleName = $user->role?->role_name;
 
                                 // Admin/Super Admin can see all employees
-                                if (in_array($roleName, ['Admin', 'Super Admin'])) {
+                                if (in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
                                     return $get('branch_id')
                                         ? $query->where('branch_id', $get('branch_id'))
                                         : $query;
