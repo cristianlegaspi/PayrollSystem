@@ -87,6 +87,7 @@ class EmployeeOverview extends StatsOverviewWidget
                 ->description($periodLabel)
                 ->descriptionIcon('heroicon-m-calendar-days')
                 ->color('primary'),
+                
 
             Stat::make('Total Basic Salary', '₱' . number_format($totals['total_basic'], 2))
                 ->description('Total base pay')
@@ -106,38 +107,46 @@ class EmployeeOverview extends StatsOverviewWidget
             Stat::make('Total Cash Advance', '₱' . number_format($totals['total_ca'], 2))
                 ->description('Outstanding cash advance')
                 ->descriptionIcon('heroicon-m-arrow-path')
-                ->color('warning'),
+                ->color('warning')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total Shortages', '₱' . number_format($totals['total_shortages'], 2))
                 ->description('Accountability deductions')
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
-                ->color('danger'),
+                ->color('danger')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total SSS Contribution', '₱' . number_format($totals['total_sss'], 2))
                 ->description('Combined EE + ER SSS')
                 ->descriptionIcon('heroicon-m-building-office')
-                ->color('success'),
+                ->color('success')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total Premium SS', '₱' . number_format($totals['total_premium_ss'], 2))
                 ->description('Voluntary premium contribution')
                 ->descriptionIcon('heroicon-m-star')
-                ->color('info'),
+                
+                ->color('info')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total PhilHealth Contribution', '₱' . number_format($totals['total_philhealth'], 2))
                 ->description('Combined EE + ER PhilHealth')
                 ->descriptionIcon('heroicon-m-banknotes')
-                ->color('success'),
+                ->color('success')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total PagIBIG Contribution', '₱' . number_format($totals['total_pagibig'], 2))
                 ->description('Combined EE + ER PagIBIG')
                 ->descriptionIcon('heroicon-m-home')
-                ->color('success'),
+                ->color('success')
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
 
             Stat::make('Total Net Pay Disbursement', '₱' . number_format($totals['total_net'], 2))
                 ->description('Final payout amount')
                 ->descriptionIcon('heroicon-m-check-badge')
                 ->color('success')
-                ->extraAttributes(['class' => 'hover:scale-105 transition']),
+                ->extraAttributes(['class' => 'hover:scale-105 transition'])
+                 ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin', 'Owner'])),
         ];
     }
 }

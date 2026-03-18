@@ -75,6 +75,14 @@ class EmployeesTable
                     ->relationship('branch', 'branch_name')
                     ->searchable()
                     ->preload(),
+
+                SelectFilter::make('status')
+                    ->label('Status')
+                    ->options([
+                        'active' => 'Active',
+                        'inactive' => 'Inactive',
+                    ])
+                    ->preload(),
             ])
             ->recordActions([
                 ViewAction::make(),

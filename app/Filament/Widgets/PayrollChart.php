@@ -12,6 +12,7 @@ class PayrollChart extends ChartWidget
     protected int|string|array $columnSpan = 'full';
     protected ?string $maxHeight = '400px';
     protected static ?int $sort = 2;
+    
 
     protected function getData(): array
     {
