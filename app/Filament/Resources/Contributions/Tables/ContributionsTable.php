@@ -44,15 +44,15 @@ class ContributionsTable
                     ->sortable(),
                 TextColumn::make('philhealth_er')
                     ->numeric()
-                     ->label('Philhealth ER')
+                    ->label('Philhealth ER')
                     ->sortable(),
                 TextColumn::make('pagibig_ee')
                     ->numeric()
-                      ->label('PAGIBIG EE')
+                    ->label('PAGIBIG EE')
                     ->sortable(),
                 TextColumn::make('pagibig_er')
                     ->numeric()
-                      ->label('PAGIBIG ER')
+                    ->label('PAGIBIG ER')
                     ->sortable(),
                 TextColumn::make('pagibig_salary_loan')
                     ->numeric()
@@ -77,7 +77,8 @@ class ContributionsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                ])
+                    ->visible(fn() => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
             ]);
     }
 }

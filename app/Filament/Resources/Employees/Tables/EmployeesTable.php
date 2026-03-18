@@ -17,26 +17,26 @@ class EmployeesTable
         return $table
             ->columns([
                 TextColumn::make('employee_number')
-                ->label('Emp No.')
+                    ->label('Emp No.')
                     ->searchable(),
                 TextColumn::make('full_name')
                     ->searchable(),
                 TextColumn::make('position.position_name')
                     ->numeric()
-                        ->label('Position')
+                    ->label('Position')
                     ->sortable(),
                 TextColumn::make('branch.branch_name')
                     ->numeric()
-                     ->label('Branch')
+                    ->label('Branch')
                     ->sortable(),
                 TextColumn::make('employmentStatus.name')
                     ->numeric()
-                     ->label('Employment Status')
+                    ->label('Employment Status')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                 TextColumn::make('employmentType.name')
                     ->numeric()
-                      ->label('Employment Types')
+                    ->label('Employment Types')
                     ->sortable(),
                 TextColumn::make('daily_rate')
                     ->numeric()
@@ -50,7 +50,7 @@ class EmployeesTable
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
                 TextColumn::make('tin')
-                 ->toggleable(isToggledHiddenByDefault: true)
+                    ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
                 TextColumn::make('status')
                     ->badge(),
@@ -83,7 +83,8 @@ class EmployeesTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                ])
+                    ->visible(fn() => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
             ]);
     }
 }

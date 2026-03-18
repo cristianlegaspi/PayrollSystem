@@ -125,7 +125,8 @@ class PayrollsTable
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
-                ]),
+                ])
+                ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
             ]);
     }
 }
