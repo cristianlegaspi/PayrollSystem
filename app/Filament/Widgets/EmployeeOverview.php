@@ -44,15 +44,12 @@ class EmployeeOverview extends StatsOverviewWidget
             'total_shortages' => 0,
             'total_other' => 0,
             'total_net' => 0,
-            'total_sss_ee' => 0,
-            'total_sss_er' => 0,
-            'total_premium_ss' => 0,
+            'total_sss' => 0,          // combined EE + ER
+            'total_premium_ss' => 0,   // combined voluntary
             'total_sss_loan' => 0,
             'total_sss_calamity_loan' => 0,
-            'total_philhealth_ee' => 0,
-            'total_philhealth_er' => 0,
-            'total_pagibig_ee' => 0,
-            'total_pagibig_er' => 0,
+            'total_philhealth' => 0,   // combined EE + ER
+            'total_pagibig' => 0,      // combined EE + ER
             'total_pagibig_loan' => 0,
         ];
 
@@ -69,15 +66,13 @@ class EmployeeOverview extends StatsOverviewWidget
             $totals['total_net'] += $payroll->net_pay;
 
             if ($payroll->contribution) {
-                $totals['total_sss_ee'] += $payroll->contribution->sss_ee ?? 0;
-                $totals['total_sss_er'] += $payroll->contribution->sss_er ?? 0;
+                // Combine EE + ER contributions
+                $totals['total_sss'] += ($payroll->contribution->sss_ee ?? 0) + ($payroll->contribution->sss_er ?? 0);
                 $totals['total_premium_ss'] += $payroll->contribution->premium_voluntary_ss_contribution ?? 0;
                 $totals['total_sss_loan'] += $payroll->contribution->sss_salary_loan ?? 0;
                 $totals['total_sss_calamity_loan'] += $payroll->contribution->sss_calamity_loan ?? 0;
-                $totals['total_philhealth_ee'] += $payroll->contribution->philhealth_ee ?? 0;
-                $totals['total_philhealth_er'] += $payroll->contribution->philhealth_er ?? 0;
-                $totals['total_pagibig_ee'] += $payroll->contribution->pagibig_ee ?? 0;
-                $totals['total_pagibig_er'] += $payroll->contribution->pagibig_er ?? 0;
+                $totals['total_philhealth'] += ($payroll->contribution->philhealth_ee ?? 0) + ($payroll->contribution->philhealth_er ?? 0);
+                $totals['total_pagibig'] += ($payroll->contribution->pagibig_ee ?? 0) + ($payroll->contribution->pagibig_er ?? 0);
                 $totals['total_pagibig_loan'] += $payroll->contribution->pagibig_salary_loan ?? 0;
             }
         }
@@ -118,55 +113,25 @@ class EmployeeOverview extends StatsOverviewWidget
                 ->descriptionIcon('heroicon-m-exclamation-triangle')
                 ->color('danger'),
 
-            // Stat::make('Total SSS EE', '₱' . number_format($totals['total_sss_ee'], 2))
-            //     ->description('Employee SSS contribution')
-            //     ->descriptionIcon('heroicon-m-user')
-            //     ->color('danger'),
-
-            Stat::make('Total SSS ER Share', '₱' . number_format($totals['total_sss_er'], 2))
-                ->description('Employer SSS contribution')
+            Stat::make('Total SSS Contribution', '₱' . number_format($totals['total_sss'], 2))
+                ->description('Combined EE + ER SSS')
                 ->descriptionIcon('heroicon-m-building-office')
                 ->color('success'),
 
-            // Stat::make('Total Premium SS', '₱' . number_format($totals['total_premium_ss'], 2))
-            //     ->description('Premium voluntary contribution')
-            //     ->descriptionIcon('heroicon-m-star')
-            //     ->color('info'),
+            Stat::make('Total Premium SS', '₱' . number_format($totals['total_premium_ss'], 2))
+                ->description('Voluntary premium contribution')
+                ->descriptionIcon('heroicon-m-star')
+                ->color('info'),
 
-            // Stat::make('Total SSS Loan', '₱' . number_format($totals['total_sss_loan'], 2))
-            //     ->description('SSS salary loan deductions')
-            //     ->descriptionIcon('heroicon-m-banknotes')
-            //     ->color('danger'),
-
-            // Stat::make('Total SSS Calamity Loan', '₱' . number_format($totals['total_sss_calamity_loan'], 2))
-            //     ->description('SSS calamity loan deductions')
-            //     ->descriptionIcon('heroicon-m-banknotes')
-            //     ->color('danger'),
-
-            // Stat::make('Total PhilHealth EE', '₱' . number_format($totals['total_philhealth_ee'], 2))
-            //     ->description('Employee PhilHealth')
-            //      ->descriptionIcon('heroicon-m-banknotes') // safe icon
-            //     ->color('danger'),
-
-            Stat::make('Total PhilHealth ER Share', '₱' . number_format($totals['total_philhealth_er'], 2))
-                ->description('Employer PhilHealth')
-                ->descriptionIcon('heroicon-m-banknotes') // safe icon
+            Stat::make('Total PhilHealth Contribution', '₱' . number_format($totals['total_philhealth'], 2))
+                ->description('Combined EE + ER PhilHealth')
+                ->descriptionIcon('heroicon-m-banknotes')
                 ->color('success'),
 
-            // Stat::make('Total PagIBIG EE', '₱' . number_format($totals['total_pagibig_ee'], 2))
-            //     ->description('Employee PagIBIG')
-            //     ->descriptionIcon('heroicon-m-home')
-            //     ->color('danger'),
-
-            Stat::make('Total PagIBIG ER Share', '₱' . number_format($totals['total_pagibig_er'], 2))
-                ->description('Employer PagIBIG')
+            Stat::make('Total PagIBIG Contribution', '₱' . number_format($totals['total_pagibig'], 2))
+                ->description('Combined EE + ER PagIBIG')
                 ->descriptionIcon('heroicon-m-home')
                 ->color('success'),
-
-            // Stat::make('Total PagIBIG Loan', '₱' . number_format($totals['total_pagibig_loan'], 2))
-            //     ->description('PagIBIG loan deductions')
-            //     ->descriptionIcon('heroicon-m-banknotes')
-            //     ->color('danger'),
 
             Stat::make('Total Net Pay Disbursement', '₱' . number_format($totals['total_net'], 2))
                 ->description('Final payout amount')
