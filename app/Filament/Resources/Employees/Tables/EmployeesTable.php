@@ -76,13 +76,12 @@ class EmployeesTable
                     ->searchable()
                     ->preload(),
 
-                SelectFilter::make('status')
-                    ->label('Status')
-                    ->options([
-                        'active' => 'Active',
-                        'inactive' => 'Inactive',
-                    ])
+                 SelectFilter::make('employment_status_id')
+                    ->label('Employment Status')
+                    ->relationship('employmentStatus', 'name')
+                    ->searchable()
                     ->preload(),
+
             ])
             ->recordActions([
                 ViewAction::make(),
