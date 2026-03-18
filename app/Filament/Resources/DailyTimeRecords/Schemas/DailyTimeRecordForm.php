@@ -198,6 +198,9 @@ class DailyTimeRecordForm
                 ])
                 ->columns(2),
 
+              Section::make('System Remarks')
+                ->schema([
+
                  TextInput::make('remarks')
                         ->label('System Remarks')
                         ->readOnly()
@@ -205,6 +208,8 @@ class DailyTimeRecordForm
                             'class' => 'font-bold text-primary-600'
                         ])
                          ->columns(1),
+
+            ])
 
         ])->columns(1);
     }
