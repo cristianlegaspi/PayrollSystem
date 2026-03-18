@@ -9,16 +9,13 @@ use Illuminate\Support\Facades\DB;
 class PayrollChart extends ChartWidget
 {
     protected ?string $heading = 'Monthly Payroll Expense (Net Pay)';
-    
-    // This makes the chart span the full width of the dashboard
-    protected int | string | array $columnSpan = 'full';
-
-    protected ?string $maxHeight = '400px'; // Increased height for better visibility
-
+    protected int|string|array $columnSpan = 'full';
+    protected ?string $maxHeight = '400px';
     protected static ?int $sort = 2;
 
     protected function getData(): array
     {
+        // Fetch total net pay grouped by month for the current year
         $data = Payroll::select(
             DB::raw('SUM(net_pay) as total'),
             DB::raw("DATE_FORMAT(created_at, '%M') as month"),
@@ -29,23 +26,64 @@ class PayrollChart extends ChartWidget
         ->orderBy('month_num')
         ->get();
 
+        // Ensure all 12 months are represented even if no payroll exists for some months
+        $allMonths = collect(range(1, 12))->map(function ($m) {
+            return [
+                'month_num' => $m,
+                'month' => date('F', mktime(0, 0, 0, $m, 1)),
+            ];
+        });
+
+        $data = $allMonths->map(function ($month) use ($data) {
+            $found = $data->firstWhere('month_num', $month['month_num']);
+            return $found ? $found : ['month' => $month['month'], 'total' => 0];
+        });
+
         return [
             'datasets' => [
                 [
                     'label' => 'Total Net Pay Disbursement',
                     'data' => $data->pluck('total')->toArray(),
-                    'fill' => 'start',
-                    'borderColor' => '#10b981',
-                    'backgroundColor' => 'rgba(16, 185, 129, 0.1)',
-                    'tension' => 0.3,
+                    'backgroundColor' => '#10b981',
+                    'borderColor' => '#065f46',
+                    'borderWidth' => 1,
                 ],
             ],
             'labels' => $data->pluck('month')->toArray(),
+            'options' => [
+                'responsive' => true,
+                'maintainAspectRatio' => false,
+                'scales' => [
+                    'x' => [
+                        'ticks' => [
+                            'maxRotation' => 0, // straight labels
+                            'minRotation' => 0,
+                        ],
+                    ],
+                    'y' => [
+                        'beginAtZero' => true, // no negative values
+                        'ticks' => [
+                            'callback' => 'function(value) { return "₱" + value.toLocaleString(); }',
+                        ],
+                    ],
+                ],
+                'plugins' => [
+                    'legend' => [
+                        'display' => true,
+                        'position' => 'top',
+                    ],
+                    'tooltip' => [
+                        'callbacks' => [
+                            'label' => 'function(context) { return "₱" + context.raw.toLocaleString(); }',
+                        ],
+                    ],
+                ],
+            ],
         ];
     }
 
     protected function getType(): string
     {
-        return 'line';
+        return 'bar';
     }
 }
