@@ -7,6 +7,8 @@ use App\Models\PayrollPeriod;
 use App\Services\PayslipService;
 use Barryvdh\DomPDF\Facade\Pdf;
 use App\Models\DailyTimeRecord;
+use App\Models\Employee;
+
 
 
 
@@ -82,3 +84,24 @@ Route::get('/dtr/print', function (\Illuminate\Http\Request $request) {
 
     return $pdf->stream('Daily_Time_Records.pdf');
 })->name('dtr.print')->middleware(['auth']);
+
+Route::get('/dtr/pdf', function (\Illuminate\Http\Request $request) {
+    $branchId = $request->query('branch_id');
+
+    $query = Employee::query();
+    if ($branchId && $branchId !== 'all') {
+        $query->where('branch_id', $branchId);
+    }
+
+    $employees = $query->get();
+    $branchName = $branchId === 'all' ? 'All Branches' : $employees->first()?->branch?->branch_name;
+
+    // Generate PDF in landscape
+    $pdf = Pdf::loadView('employees.dtr_pdf', [
+        'employees' => $employees,
+        'branch' => $branchName,
+    ])->setPaper('a4', 'landscape'); // <-- landscape
+
+    // Stream PDF to browser
+    return $pdf->stream('DTR_Report.pdf');
+})->name('employees.dtr.pdf')->middleware(['auth']);
