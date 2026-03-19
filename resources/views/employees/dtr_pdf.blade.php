@@ -12,7 +12,8 @@
 </head>
 <body>
     <div class="header">
-        <h2>Summary of Employee Record</h2>
+        <h2>E.A OCAMPO ENTERPRISES</h2>
+        <h3>Summary of Employee Report</h3>
         <p>Branch: {{ $branch }}</p>
     </div>
 
