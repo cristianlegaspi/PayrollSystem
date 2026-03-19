@@ -87,6 +87,13 @@ class EmployeesTable
                     ->searchable()
                     ->preload(),
 
+                SelectFilter::make('status')
+                     ->label('Status')
+                        ->options([
+                            'Active' => 'Active',
+                            'Resigned' => 'Resigned',
+                            'Terminated' => 'Terminated',
+                        ])
             ])
             ->recordActions([
                 ViewAction::make(),
