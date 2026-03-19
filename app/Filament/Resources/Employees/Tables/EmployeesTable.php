@@ -52,8 +52,13 @@ class EmployeesTable
                 TextColumn::make('tin')
                     ->toggleable(isToggledHiddenByDefault: true)
                     ->searchable(),
-                TextColumn::make('status')
-                    ->badge(),
+               TextColumn::make('status')
+                    ->badge()
+                    ->colors([
+                        'success' => 'Active',
+                        'warning' => 'Resigned',
+                        'danger' => 'Terminated',
+                    ]),
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()

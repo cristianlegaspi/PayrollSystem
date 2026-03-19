@@ -47,7 +47,7 @@ class EmployeeForm
                     ->label('Tax Identification Number (TIN)')
                     ->placeholder('356-657-1234'),
                 Select::make('status')
-                    ->options(['Active' => 'Active', 'Inactive' => 'Inactive'])
+                    ->options(['Active' => 'Active', 'Resigned' => 'Resigned', 'Terminated' => 'Terminated'])
                     ->default('Active')
                     ->required(),
             ]);
