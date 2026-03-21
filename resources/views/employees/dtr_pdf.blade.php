@@ -40,7 +40,7 @@
                 <td>{{ $index + 1 }}</td>
                 <td>{{ $employee->employee_number }}</td>
                 <td>{{ $employee->full_name }}</td>
-                <td>{{ $employee->position_id }}</td>
+                <td>{{ $employee->position?->position_name }}</td>
                 <td>{{ $employee->branch?->branch_name }}</td>
                 <td>{{ $employee->employmentStatus?->name }}</td>
                 <td>{{ $employee->employmentType?->name }}</td>
