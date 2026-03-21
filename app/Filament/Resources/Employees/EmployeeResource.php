@@ -9,6 +9,7 @@ use App\Filament\Resources\Employees\Pages\ViewEmployee;
 use App\Filament\Resources\Employees\Schemas\EmployeeForm;
 use App\Filament\Resources\Employees\Schemas\EmployeeInfolist;
 use App\Filament\Resources\Employees\Tables\EmployeesTable;
+use App\Imports\EmployeeImport;
 use App\Models\Employee;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -16,6 +17,9 @@ use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use UnitEnum;
+use Filament\Actions\Action;
+use Filament\Forms\Components\FileUpload;
+use Maatwebsite\Excel\Facades\Excel;
 
 class EmployeeResource extends Resource
 {
@@ -41,7 +45,7 @@ class EmployeeResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return EmployeesTable::configure($table);
+         return EmployeesTable::configure($table);
     }
 
     public static function getRelations(): array

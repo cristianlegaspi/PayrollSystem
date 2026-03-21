@@ -22,7 +22,6 @@ class DailyTimeRecordForm
             // =========================
             Section::make('Employee & Date')
                 ->schema([
-
                     Select::make('employee_id')
                         ->label('Employee')
                         ->options(function () {
@@ -30,11 +29,9 @@ class DailyTimeRecordForm
                             $roleName = $user->role?->role_name;
 
                             if (in_array($roleName, ['Admin', 'Super Admin'])) {
-                                // Admin sees all employees
                                 return Employee::pluck('full_name', 'id');
                             }
 
-                            // Regular user sees only employees in their branch
                             return Employee::where('branch_id', $user->branch_id)
                                 ->pluck('full_name', 'id');
                         })
@@ -47,7 +44,6 @@ class DailyTimeRecordForm
                         ->reactive()
                         ->afterStateUpdated(fn ($get, $set) => self::compute($get, $set))
                         ->required(),
-
                 ])
                 ->columns(2),
 
@@ -56,7 +52,6 @@ class DailyTimeRecordForm
             // =========================
             Section::make('Attendance Status')
                 ->schema([
-
                     Select::make('status')
                         ->label('Attendance Status')
                         ->options([
@@ -72,7 +67,6 @@ class DailyTimeRecordForm
                         ->reactive()
                         ->afterStateUpdated(fn ($get, $set) => self::compute($get, $set))
                         ->required(),
-
                 ])
                 ->columns(1),
 
@@ -81,27 +75,23 @@ class DailyTimeRecordForm
             // =========================
             Section::make('Biometrics Details')
                 ->schema([
-                    // 1st Shift
                     Section::make('1st Shift')
                         ->schema([
                             TimePicker::make('shift1_time_in')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                             TimePicker::make('shift1_time_out')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                         ])->columns(2),
 
-                    // 2nd Shift
                     Section::make('2nd Shift')
                         ->schema([
                             TimePicker::make('shift2_time_in')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                             TimePicker::make('shift2_time_out')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                         ])->columns(2),
 
-                    // 3rd Shift
                     Section::make('3rd Shift')
                         ->schema([
                             TimePicker::make('shift3_time_in')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                             TimePicker::make('shift3_time_out')->seconds(true)->reactive()->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
                         ])->columns(2),
-
                 ])->columns(1),
 
             // =========================
@@ -127,13 +117,9 @@ class DailyTimeRecordForm
                         ->readOnly()
                         ->extraAttributes(['class' => 'font-bold text-primary-600'])
                 ])->columns(1),
-
         ])->columns(1);
     }
 
-    // =========================
-    // COMPUTATION LOGIC
-    // =========================
     protected static function compute($get, $set)
     {
         $status     = $get('status');
@@ -159,7 +145,12 @@ class DailyTimeRecordForm
             $cursor = $in->copy();
             while ($cursor < $out) {
                 $hour = (int) $cursor->format('H');
-                if ($hour >= 22 || $hour < 6) $nightMinutes++;
+                
+                // Logic: ND is 10PM (22) to 5AM (4:59). 
+                // By using < 5, we exclude the 5:00 AM to 6:00 AM hour from ND.
+                if ($hour >= 22 || $hour < 5) {
+                    $nightMinutes++;
+                }
                 $cursor->addMinute();
             }
         }
@@ -212,6 +203,7 @@ class DailyTimeRecordForm
             }
         }
 
+        // Night OT logic
         if ($ot > 0 && $nightHours > 0) {
             $nightOT = min($nightHours, $ot);
         }
