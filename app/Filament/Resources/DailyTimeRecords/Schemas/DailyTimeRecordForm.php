@@ -192,7 +192,7 @@ class DailyTimeRecordForm
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
-                        $set('remarks', ($workedHours > 8) ? 'On Duty w/ OT' : 'On Duty');
+                        $set('remarks', ($workedHours > 8) ? 'Rest Day OT' : 'Rest Day OT');
                     } elseif ($workedHours > 0) {
                         $regular = $workedHours;
                         $undertime = round(8 - $workedHours, 2);
