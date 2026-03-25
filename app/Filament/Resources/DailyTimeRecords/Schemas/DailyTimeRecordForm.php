@@ -34,9 +34,9 @@ class DailyTimeRecordForm
                         })
                         ->searchable()
                         ->preload()
-                        ->reactive() // Added reactive to trigger compute when employee changes
-                        ->afterStateUpdated(fn ($get, $set) => self::compute($get, $set))
-                        ->required(),
+                        ->required()
+                        ->reactive()
+                        ->afterStateUpdated(fn ($get, $set) => self::compute($get, $set)),
 
                     DatePicker::make('work_date')
                         ->default(now())
@@ -85,6 +85,7 @@ class DailyTimeRecordForm
                 ->schema([
                     TextInput::make('total_hours')->label('Regular Hours')->numeric()->readOnly()->default(0),
                     TextInput::make('overtime_hours')->label('Total OT Hours')->numeric()->readOnly()->default(0),
+                    TextInput::make('rest_day_ot_hours')->label('Rest Day OT')->numeric()->readOnly()->default(0),
                     TextInput::make('sunday_ot_hours')->label('Sunday OT')->numeric()->readOnly()->default(0),
                     TextInput::make('undertime_hours')->label('Undertime')->numeric()->readOnly()->default(0),
                     TextInput::make('night_diff_hours')->label('Night Diff (Total)')->numeric()->readOnly()->default(0),
@@ -103,15 +104,15 @@ class DailyTimeRecordForm
 
     protected static function compute($get, $set)
     {
-        $employeeId = $get('employee_id');
         $status     = $get('status');
         $workDate   = $get('work_date');
-        
-        // Fetch Employee and their Employment Type Name
-        $employee = $employeeId ? Employee::with('employmentType')->find($employeeId) : null;
-        $typeName = $employee?->employmentType?->name; 
+        $employeeId = $get('employee_id');
+        $isSunday   = $workDate ? Carbon::parse($workDate)->isSunday() : false;
 
-        $isSunday = $workDate ? Carbon::parse($workDate)->isSunday() : false;
+        $employee = $employeeId ? Employee::with('employmentType')->find($employeeId) : null;
+        $employmentTypeName = $employee?->employmentType?->name ?? '';
+        $user = Filament::auth()->user();
+        $userRole = $user->role?->role_name;
 
         $totalMinutes = 0;
         $nightDiffMinutes = 0;
@@ -137,10 +138,8 @@ class DailyTimeRecordForm
                 
                 $hour = (int) $cursor->format('H');
 
-                // NIGHT WINDOW: 10PM–6AM
                 if ($hour >= 22 || $hour < 6) {
                     $nightDiffMinutes++;
-                    // NIGHT OT only after 8 hours
                     if ($accumulatedMinutes > 480) {
                         $nightOTMinutes++;
                     }
@@ -153,7 +152,6 @@ class DailyTimeRecordForm
         $nightDiffTotal = round($nightDiffMinutes / 60, 2);
         $nightOTTotal   = round($nightOTMinutes / 60, 2);
 
-        // Ignore ND for day shifts (e.g., small overlaps)
         if ($nightDiffTotal <= 1.0 && $workedHours >= 8 && !str_contains($status, 'night')) {
             $nightDiffTotal = 0;
             $nightOTTotal = 0;
@@ -163,16 +161,28 @@ class DailyTimeRecordForm
         $ot = 0;
         $undertime = 0;
         $sundayOT = 0;
+        $restDayOT = 0;
 
-        // CHECK EMPLOYEE TYPE ELIGIBILITY FOR SUNDAY OT
-        $isAdminOrHead = in_array($typeName, ['Admin', 'Head Admin']);
-
-        if ($isSunday && $workedHours > 0 && $isAdminOrHead) {
-            // Sunday OT logic for Admins/Head Admins
-            $sundayOT = $workedHours;
-            $set('remarks', 'Sunday OT');
-        } else {
-            // Normal Logic for Weekdays OR Field Employees on Sundays
+        // --- UPDATED PRIORITY LOGIC ---
+        
+        // 1. Check REST DAY first.
+        if ($status === 'rest_day') {
+            $restDayOT = $workedHours;
+            // Remark changes based on if they worked or not
+            $set('remarks', ($workedHours > 0) ? 'Rest Day OT' : 'Rest Day');
+        } 
+        // 2. Check SUNDAY if status is NOT Rest Day
+        elseif ($isSunday && $workedHours > 0) {
+            if ($employmentTypeName === 'Field' || !in_array($userRole, ['Admin', 'Super Admin'])) {
+                $ot = $workedHours;
+                $set('remarks', 'Sunday (Regular OT)');
+            } else {
+                $sundayOT = $workedHours;
+                $set('remarks', 'Sunday OT');
+            }
+        } 
+        // 3. All other statuses
+        else {
             switch ($status) {
                 case 'absent_with_pay':
                     $regular = 8;
@@ -183,16 +193,15 @@ class DailyTimeRecordForm
                     $ot = $workedHours;
                     $set('remarks', 'Legal Holiday');
                     break;
-                case 'rest_day':
                 case 'special_holiday':
                     $ot = $workedHours;
-                    $set('remarks', ucfirst(str_replace('_', ' ', $status)));
+                    $set('remarks', 'Special Holiday');
                     break;
                 default:
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
-                        $set('remarks', ($workedHours > 8) ? 'Rest Day OT' : 'Rest Day OT');
+                        $set('remarks', ($workedHours > 8) ? 'On Duty w/ OT' : 'On Duty');
                     } elseif ($workedHours > 0) {
                         $regular = $workedHours;
                         $undertime = round(8 - $workedHours, 2);
@@ -206,6 +215,7 @@ class DailyTimeRecordForm
 
         $set('total_hours', $regular);
         $set('overtime_hours', $ot);
+        $set('rest_day_ot_hours', $restDayOT);
         $set('sunday_ot_hours', $sundayOT);
         $set('undertime_hours', $undertime);
         $set('night_diff_hours', $nightDiffTotal);

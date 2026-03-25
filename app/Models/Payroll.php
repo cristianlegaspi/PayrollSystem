@@ -23,12 +23,15 @@ class Payroll extends Model
         'gross_pay',
         'total_deductions',
         'cash_advance',
-        'shortages',
+        'shortages',    
         'other_deduction',
         'net_pay',
         'sunday_ot_hours',
         'sunday_ot_salary',
-         'undertime_deduction',
+        'undertime_deduction',
+        'rest_day_ot_hours',
+        'rest_day_ot_salary',
+         
 
     ];
 

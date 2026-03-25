@@ -88,9 +88,12 @@ class DailyTimeRecordInfolist
                             ->label('Night Differential OT Hours')
                             ->numeric(),
 
-                        
                         TextEntry::make('sunday_ot_hours')
                             ->label('Sunday OT Hours')
+                            ->numeric(),
+
+                         TextEntry::make('rest_day_ot_hours')
+                            ->label('Rest Day OT Hours')
                             ->numeric(),
 
                         TextEntry::make('remarks')

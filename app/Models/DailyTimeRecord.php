@@ -21,6 +21,7 @@ class DailyTimeRecord extends Model
         'night_diff_hours',
         'night_diff_ot_hours',
         'sunday_ot_hours',
+        'rest_day_ot_hours',
         'remarks',
         'status',
     ];
@@ -30,9 +31,9 @@ class DailyTimeRecord extends Model
         'overtime_hours' => 'decimal:2',
         'undertime_hours' => 'decimal:2',
         'total_hours' => 'decimal:2',
-         'night_diff_hours' => 'decimal:2',
-    'night_diff_ot_hours' => 'decimal:2',
-        
+        'night_diff_hours' => 'decimal:2',
+        'night_diff_ot_hours' => 'decimal:2',
+        'rest_day_ot_hours' => 'decimal:2', 
     ];
 
     
