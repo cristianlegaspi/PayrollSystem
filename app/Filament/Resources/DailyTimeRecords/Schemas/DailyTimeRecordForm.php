@@ -51,13 +51,13 @@ class DailyTimeRecordForm
                     Select::make('status')
                         ->label('Attendance Status')
                         ->options([
-                            'on_duty'             => 'On Duty',
-                            'night_shift'         => 'Night Shift',
-                            'rest_day'            => 'Rest Day',
-                            'legal_holiday'       => 'Legal Holiday',
-                            'special_holiday'     => 'Special Holiday',
-                            'absent_with_pay'     => 'Absent With Pay',
-                            'absent_without_pay'  => 'Absent Without Pay',
+                            'on_duty'           => 'On Duty',
+                            'night_shift'       => 'Night Shift',
+                            'rest_day'          => 'Rest Day',
+                            'legal_holiday'     => 'Legal Holiday',
+                            'special_holiday'   => 'Special Holiday',
+                            'absent_with_pay'   => 'Absent With Pay',
+                            'absent_without_pay' => 'Absent Without Pay',
                         ])
                         ->default('on_duty')
                         ->reactive()
@@ -163,17 +163,16 @@ class DailyTimeRecordForm
         $sundayOT = 0;
         $restDayOT = 0;
 
-        // --- UPDATED PRIORITY LOGIC ---
+        // --- LOGIC FOR SUNDAY VS FIELD ---
         
-        // 1. Check REST DAY first.
+        // 1. Check REST DAY (Priority)
         if ($status === 'rest_day') {
             $restDayOT = $workedHours;
-            // Remark changes based on if they worked or not
             $set('remarks', ($workedHours > 0) ? 'Rest Day OT' : 'Rest Day');
         } 
-        // 2. Check SUNDAY if status is NOT Rest Day
-        elseif ($isSunday && $workedHours > 0) {
-            if ($employmentTypeName === 'Field' || !in_array($userRole, ['Admin', 'Super Admin'])) {
+        // 2. Sunday Logic - Bypassed for "Field" employees
+        elseif ($isSunday && $employmentTypeName !== 'Field' && $workedHours > 0) {
+            if (!in_array($userRole, ['Admin', 'Super Admin'])) {
                 $ot = $workedHours;
                 $set('remarks', 'Sunday (Regular OT)');
             } else {
@@ -181,7 +180,7 @@ class DailyTimeRecordForm
                 $set('remarks', 'Sunday OT');
             }
         } 
-        // 3. All other statuses
+        // 3. Regular Calculations (Includes Field Employees working on Sundays)
         else {
             switch ($status) {
                 case 'absent_with_pay':
@@ -201,11 +200,15 @@ class DailyTimeRecordForm
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
-                        $set('remarks', ($workedHours > 8) ? 'On Duty w/ OT' : 'On Duty');
+                        $label = ($workedHours > 8) ? 'On Duty w/ OT' : 'On Duty';
+                        if ($isSunday && $employmentTypeName === 'Field');
+                        $set('remarks', $label);
                     } elseif ($workedHours > 0) {
                         $regular = $workedHours;
                         $undertime = round(8 - $workedHours, 2);
-                        $set('remarks', 'Undertime');
+                        $label = 'Undertime';
+                        if ($isSunday && $employmentTypeName === 'Field');
+                        $set('remarks', $label);
                     } else {
                         $set('remarks', 'Absent Without Pay');
                     }
