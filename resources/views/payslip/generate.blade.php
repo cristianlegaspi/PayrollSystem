@@ -85,22 +85,28 @@ $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss
 </tr>
 
 <tr>
-<td>Regular Overtime Pay (Mon to Sat)</td>
+<td>Regular Overtime Pay</td>
 <td class="right">PHP {{ number_format($data['overtime_salary'],2) }}</td>
 </tr>
 
 <tr>
-<td>Night Differential</td>
+<td>Night Differential Pay</td>
 <td class="right">PHP {{ number_format($data['night_diff_salary'],2) }}</td>
 </tr>
 
 <tr>
-<td>Night Differential OT</td>
+<td>Night Differential OT Pay</td>
 <td class="right">PHP {{ number_format($data['night_diff_ot_salary'],2) }}</td>
 </tr>
 
 <tr>
-<td>Sunday OT</td>
+<td>Regular OT Pay</td>
+<td class="right">PHP {{ number_format($data['rest_day_ot_salary'],2) }}</td>
+</tr>
+
+
+<tr>
+<td>Sunday OT Pay</td>
 <td class="right">PHP {{ number_format($data['sunday_ot_salary'],2) }}</td>
 </tr>
 

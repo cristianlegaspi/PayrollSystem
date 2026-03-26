@@ -43,7 +43,7 @@ $field = array_fill_keys($columns, 0);
         <th>Undertime Hours</th>
         <th>Daily Rate</th>
         <th>Basic Salary</th>
-        <th>Overtime</th>
+        <th>Overtime Pay (Regular, Night,Sunday and Rest OT) </th>
         <th>Holiday Pay</th>
         <th>Gross Pay</th>
         <th>Cash Advance</th>
@@ -109,6 +109,7 @@ $isSecondCutoff = $startDay >= 16;
     $totalOvertime = ($payroll->overtime_salary ?? 0)
                      + ($payroll->night_diff_salary ?? 0)
                      + ($payroll->sunday_ot_salary ?? 0)
+                     + ($payroll->rest_day_ot_salary ?? 0)
                      + ($payroll->night_diff_ot_salary ?? 0);
 @endphp
 

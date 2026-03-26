@@ -31,8 +31,7 @@ class Payroll extends Model
         'undertime_deduction',
         'rest_day_ot_hours',
         'rest_day_ot_salary',
-         
-
+        
     ];
 
     public function employee()

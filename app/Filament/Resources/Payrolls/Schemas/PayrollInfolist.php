@@ -52,6 +52,13 @@ class PayrollInfolist
                 TextEntry::make('sunday_ot_hours')
                     ->label('Sunday OT Hours')
                     ->numeric(),
+
+
+
+             TextEntry::make('rest_day_ot_hours')
+                    ->label('Rest Day OT Hours')
+                    ->numeric(),
+           
            
              ])->columns(2),
 
@@ -63,6 +70,7 @@ class PayrollInfolist
                      TextEntry::make('basic_salary')
                     ->numeric(),
                 TextEntry::make('overtime_salary')
+                    ->label('Regular OT Salary')
                     ->numeric(),
                 TextEntry::make('night_diff_salary')
                     ->numeric(),
@@ -71,6 +79,10 @@ class PayrollInfolist
                     ->numeric(),
                 TextEntry::make('sunday_ot_salary')
                     ->label('Sunday OT Salary')
+                    ->numeric(),
+
+                 TextEntry::make('rest_day_ot_salary')
+                    ->label('Rest Day OT Salary')
                     ->numeric(),
 
                   TextEntry::make('undertime_deduction')

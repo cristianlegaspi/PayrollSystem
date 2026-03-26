@@ -30,6 +30,7 @@ class PayslipService
             'overtime_salary' => $payroll->overtime_salary,
             'night_diff_salary' => $payroll->night_diff_salary,
             'night_diff_ot_salary' => $payroll->night_diff_ot_salary,
+            'rest_day_ot_salary' => $payroll->rest_day_ot_salary,
             'sunday_ot_salary' => $payroll->sunday_ot_salary,
             'gross_pay' => $payroll->gross_pay,
 
