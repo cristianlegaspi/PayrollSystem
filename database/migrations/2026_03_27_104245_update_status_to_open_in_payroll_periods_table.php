@@ -12,11 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('payroll_periods', function (Blueprint $table) {
-            // $table->text('remarks')->nullable()->after('status');
-            $table->string('remarks')->default('Pending')->after('status');
-   
-
-             
+             $table->string('status')->default('Open')->change();
         });
     }
 
@@ -26,7 +22,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('payroll_periods', function (Blueprint $table) {
-            $table->dropColumn('remarks');
+            $table->string('status')->default('open')->change();
         });
     }
 };
