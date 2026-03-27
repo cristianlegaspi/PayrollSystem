@@ -23,10 +23,10 @@ class PayrollPeriodForm
                             ->placeholder('January 1-15, 2026')
                             ->required(),
 
-                        Select::make('status')
-                            ->options(['Closed' => 'Closed', 'Open' => 'Open', 'Finalized' => 'Finalized'])
-                            ->default('Open')
-                            ->required(),
+                        // Select::make('status')
+                        //     ->options(['Closed' => 'Closed', 'Open' => 'Open', 'Finalized' => 'Finalized'])
+                        //     ->default('Open')
+                        //     ->required(),
                     ])->columns(1),
 
                 Section::make('Covered Date Details')
@@ -40,15 +40,15 @@ class PayrollPeriodForm
                     ])->columns(2),
 
 
-                Section::make('Payroll Status Details')
-                    ->schema([
+                // Section::make('Payroll Status Details')
+                //     ->schema([
 
-                         Select::make('remarks')
-                            ->options(['Pending' => 'Pending', 'Approved' => 'Approved', 'Rejected' => 'Rejected'])
-                            ->default('Pending')
-                            ->required(),
+                //         //  Select::make('remarks')
+                //         //     ->options(['Pending' => 'Pending', 'Approved' => 'Approved', 'Rejected' => 'Rejected'])
+                //         //     ->default('Pending')
+                //         //     ->required(),
 
-                     ])->columns(1),
+                //      ])->columns(1),
 
 
             ])->columns(1);
