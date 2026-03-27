@@ -28,6 +28,8 @@ class DailyTimeRecordResource extends Resource
     protected static ?string $recordTitleAttribute = 'DailyTimeRecord';
 
     protected static string | UnitEnum | null $navigationGroup = 'Attendance Management';
+    
+    protected static ?string $navigationLabel = 'Daily Time Record (DTR)'; // Custom label
 
     protected static ?int $navigationSort = 1;
 

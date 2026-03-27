@@ -18,6 +18,6 @@ class ListPayrollPeriods extends ListRecords
         ];
     }
 
-     protected ?string $heading = 'Payroll Period Management';
-    protected ?string $subheading = 'Overview of All Payroll Period';
+     protected ?string $heading = 'Ledger History';
+    protected ?string $subheading = 'Overview of All Ledger History';
 }

@@ -24,6 +24,7 @@ class PayrollResource extends Resource
     protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
 
     protected static ?string $recordTitleAttribute = 'Payroll';
+    protected static ?string $navigationLabel = 'Payroll Employee Summary'; // Custom label
     protected static string | UnitEnum | null $navigationGroup = 'Payroll Management';
 
     protected static ?int $navigationSort = 2;

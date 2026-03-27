@@ -29,6 +29,8 @@ class EmployeeResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'Employee';
 
+       protected static ?string $navigationLabel = 'Employee Directory'; // Custom label
+
     protected static string | UnitEnum | null $navigationGroup = 'Employee Management';
 
     protected static ?int $navigationSort = 1;

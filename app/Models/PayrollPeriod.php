@@ -6,21 +6,22 @@ use Illuminate\Database\Eloquent\Model;
 
 class PayrollPeriod extends Model
 {
-      protected $fillable = [
+    protected $fillable = [
         'description',
         'start_date',
         'end_date',
-        'status'
+        'status',
+        'remarks',
     ];
 
 
     protected $casts = [
-    'start_date' => 'date',
-    'end_date' => 'date',
-];
+        'start_date' => 'date',
+        'end_date' => 'date',
+    ];
 
     public function payrolls()
-{
-    return $this->hasMany(Payroll::class);
-}
+    {
+        return $this->hasMany(Payroll::class);
+    }
 }

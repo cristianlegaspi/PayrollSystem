@@ -25,6 +25,8 @@ class PayrollPeriodResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'PayrollPeriod';
 
+    protected static ?string $navigationLabel = 'Pay Periods (Ledger)'; // Custom label
+
     protected static string | UnitEnum | null $navigationGroup = 'Payroll Management';
 
     protected static ?int $navigationSort = 1;

@@ -131,12 +131,10 @@ class PayrollService
                     'gross_pay'             => round($grossPay, 2),
                     'total_deductions'      => round($totalDeductions, 2),
                     
-                    // NOTE: net_pay is handled by your Payroll model's booted() saving event.
-                    // It will subtract cash_advance, shortages, and other_deductions automatically.
                 ]
             );
         }
 
-        $period->update(['status' => 'finalized']);
+       $period->update(['status'  => 'Finalized','remarks' => 'Pending']);                
     }
 }

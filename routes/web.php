@@ -24,27 +24,41 @@ Route::get('/payroll/{payroll}/payslip', function (Payroll $payroll) {
     return PayslipService::generate($payroll);
 })->name('payroll.payslip');
 
-Route::get('/payroll/print/{period}/{branch}', function (PayrollPeriod $period, Branch $branch) {
+Route::get('/payroll/print/{period}/{branch?}', function (PayrollPeriod $period, $branchId = null) {
     
-    $payrolls = Payroll::with(['employee', 'employee.branch', 'contribution'])
-        ->where('payroll_period_id', $period->id)
-        ->whereHas('employee', fn ($q) => $q->where('branch_id', $branch->id))
-        ->orderBy('employee_id')
-        ->get();
+    // 1. Initialize Query
+    $query = Payroll::with(['employee', 'employee.branch', 'contribution'])
+        ->where('payroll_period_id', $period->id);
 
-    if ($payrolls->isEmpty()) {
-        return "No records found.";
+    // 2. Handle Branch Filtering (Only filter if an ID is actually passed)
+    $branch = null;
+    if ($branchId) {
+        $branch = Branch::find($branchId);
+        if ($branch) {
+            $query->whereHas('employee', fn ($q) => $q->where('branch_id', $branch->id));
+        }
     }
 
+    // 3. Get Data
+    $payrolls = $query->orderBy('employee_id')->get()->groupBy('employee.branch.branch_name');
+
+    if ($payrolls->isEmpty()) {
+        return "No records found for this period.";
+    }
+
+    // 4. Generate PDF
     $pdf = Pdf::loadView('reports.payroll-summary', [
         'period' => $period,
-        'payrolls' => $payrolls,
-        'branch' => $branch
+        'groupedPayrolls' => $payrolls, // Pass grouped data
+        'branch' => $branch // Will be null if showing "All Branches"
     ])->setPaper('legal', 'landscape');
 
-    // 'inline' ensures it opens in the browser viewer instead of forcing a download
-    return $pdf->stream("Payroll-{$branch->branch_name}-{$period->description}.pdf");
-})->name('payroll.print')->middleware(['auth']); // Ensure only logged-in users can access
+    $filename = $branch 
+        ? "Payroll-{$branch->branch_name}-{$period->description}.pdf" 
+        : "Payroll-AllBranches-{$period->description}.pdf";
+
+    return $pdf->stream($filename);
+})->name('payroll.print')->middleware(['auth']);
 
 // DTR PDF route
 // DTR PDF route

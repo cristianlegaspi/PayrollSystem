@@ -5,190 +5,237 @@
     <title>Payroll Summary</title>
     <style>
         body { font-family: Arial, sans-serif; font-size:10px; }
-        table { width:100%; border-collapse:collapse; }
+        table { width:100%; border-collapse:collapse; margin-top: 10px; }
         th, td { border:1px solid #000; padding:4px; }
-        th { text-align:center; font-weight:bold; }
+        th { text-align:center; font-weight:bold; background-color: #f2f2f2; }
         td { text-align:right; }
         .text-left { text-align:left; }
         .bold { font-weight:bold; }
-        .signature { height:40px; }
-        .no-border td { border:none; }
+        .page-break { page-break-after: always; }
         .signature-line { border-top:1px solid #000; width:200px; margin-top:40px; }
+        .no-border td { border:none; }
     </style>
 </head>
 <body>
 
-<h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
-Payroll Summary - {{ $period->description }} <br>
-Branch: {{ $branch->branch_name }}
+{{-- NEW: GRAND SUMMARY PAGE --}}
+<div class="page-break">
+    <h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
+    <h4 style="text-align:center;margin-top:5px;">GRAND PAYROLL SUMMARY - {{ $period->description }}</h4>
+    
+    <table>
+        <thead>
+            <tr>
+                <th class="text-left">Branch</th>
+                <th>Total Basic Salary</th>
+                <th>Total Gross Pay</th>
+                <th>SSS Salary Loan</th>
+                <th>SSS Calamity Loan</th>
+                <th>PagIBIG Salary Loan</th>
+                <th>Total Cash Advance</th>
+                <th>Total Shortages</th>
+                <th>Total SSS (ER+EE)</th>
+                <th>Total Premium SS</th>
+                <th>Total PhilHealth (ER+EE)</th>
+                <th>Total PagIBIG (ER+EE)</th>
+                <th>Total Net Pay</th>
+            </tr>
+        </thead>
+        <tbody>
+            @php
+                $overallTotal = [
+                    'basic' => 0, 'gross' => 0, 'sss_loan' => 0, 'sss_cal' => 0, 'pi_loan' => 0,
+                    'ca' => 0, 'short' => 0, 'sss' => 0, 'prem' => 0, 'ph' => 0, 'pi' => 0, 'net' => 0
+                ];
+                $startDay = \Carbon\Carbon::parse($period->start_date)->day;
+                $isFirst = $startDay >= 1 && $startDay <= 15;
+                $isSecond = $startDay >= 16;
+            @endphp
 
-@php
-$columns = [
-    'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
-    'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
-    'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 'philhealth_er', 'philhealth_ee',
-    'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 'total_deductions', 'net_pay'
-];
+            @foreach($groupedPayrolls as $branchName => $payrolls)
+                @php
+                    $bBasic = 0; $bGross = 0; $bSssL = 0; $bSssC = 0; $bPiL = 0;
+                    $bCa = 0; $bShort = 0; $bSss = 0; $bPrem = 0; $bPh = 0; $bPi = 0; $bNet = 0;
 
-$grand = array_fill_keys($columns, 0);
-$admin = array_fill_keys($columns, 0);
-$field = array_fill_keys($columns, 0);
-@endphp
+                    foreach($payrolls as $p) {
+                        $bBasic += $p->basic_salary;
+                        $bGross += $p->gross_pay;
+                        $bCa += $p->cash_advance ?? 0;
+                        $bShort += $p->shortages ?? 0;
+                        
+                        // Loans (Usually 2nd Cutoff)
+                        $sL = $isSecond ? ($p->contribution->sss_salary_loan ?? 0) : 0;
+                        $sC = $isSecond ? ($p->contribution->sss_calamity_loan ?? 0) : 0;
+                        $pL = $isSecond ? ($p->contribution->pagibig_salary_loan ?? 0) : 0;
+                        $bSssL += $sL; $bSssC += $sC; $bPiL += $pL;
 
-<table>
-    <tr>
-        <th class="text-left">Employee Name</th>
-        <th>Days Worked</th>
-        <th>Days Absent</th>
-        <th>Undertime Hours</th>
-        <th>Daily Rate</th>
-        <th>Basic Salary</th>
-        <th>Overtime Pay (Regular, Night,Sunday and Rest OT) </th>
-        <th>Holiday Pay</th>
-        <th>Gross Pay</th>
-        <th>Cash Advance</th>
-        <th>Shortages</th>
-        <th>Other Deduction</th>
-        <th>SSS ER</th>
-        <th>SSS EE</th>
-        <th>Premium SS Contribution</th>
-        <th>SSS Salary Loan</th>
-        <th>SSS Salary Calamity Loan</th>
-        <th>PhilHealth ER</th>
-        <th>PhilHealth EE</th>
-        <th>Pagibig ER</th>
-        <th>Pagibig EE</th>
-        <th>Pagibig Salary Loan</th>
-        <th>Total Deduction</th>
-        <th>Net Pay</th>
-        <th>Signature</th>
-    </tr>
+                        // SSS/PH/PI EE+ER logic based on cutoff
+                        $sss_ee = $isFirst ? ($p->contribution->sss_ee ?? 0) : 0;
+                        $sss_er = $isFirst ? ($p->contribution->sss_er ?? 0) : 0;
+                        $bSss += ($sss_ee + $sss_er);
+                        
+                        $pr = $isFirst ? ($p->contribution->premium_voluntary_ss_contribution ?? 0) : 0;
+                        $bPrem += $pr;
+                        
+                        $ph_ee = $isFirst ? ($p->contribution->philhealth_ee ?? 0) : 0;
+                        $ph_er = $isFirst ? ($p->contribution->philhealth_er ?? 0) : 0;
+                        $bPh += ($ph_ee + $ph_er);
 
-  @php
-$startDay = \Carbon\Carbon::parse($period->start_date)->day;
-$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
-$isSecondCutoff = $startDay >= 16;
-@endphp
+                        $pi_ee = $isFirst ? ($p->contribution->pagibig_ee ?? 0) : 0;
+                        $pi_er = $isFirst ? ($p->contribution->pagibig_er ?? 0) : 0;
+                        $bPi += ($pi_ee + $pi_er);
 
-@php
-$startDay = \Carbon\Carbon::parse($period->start_date)->day;
-$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
-$isSecondCutoff = $startDay >= 16;
-@endphp
+                        // Net Pay calculation
+                        $deductions = $sss_ee + $ph_ee + $pi_ee + $pr + $sL + $sC + $pL 
+                                    + ($p->cash_advance ?? 0) + ($p->shortages ?? 0) + ($p->other_deduction ?? 0);
+                        $bNet += ($p->gross_pay - $deductions);
+                    }
 
-@foreach($payrolls as $payroll)
-@php
-    $type = $payroll->employee->employee_type ?? 'Field';
+                    // Add to Overall Grand Totals
+                    $overallTotal['basic'] += $bBasic; $overallTotal['gross'] += $bGross;
+                    $overallTotal['sss_loan'] += $bSssL; $overallTotal['sss_cal'] += $bSssC; $overallTotal['pi_loan'] += $bPiL;
+                    $overallTotal['ca'] += $bCa; $overallTotal['short'] += $bShort;
+                    $overallTotal['sss'] += $bSss; $overallTotal['prem'] += $bPrem;
+                    $overallTotal['ph'] += $bPh; $overallTotal['pi'] += $bPi;
+                    $overallTotal['net'] += $bNet;
+                @endphp
+                <tr>
+                    <td class="text-left">{{ $branchName ?? 'No Branch' }}</td>
+                    <td>{{ number_format($bBasic, 2) }}</td>
+                    <td>{{ number_format($bGross, 2) }}</td>
+                    <td>{{ number_format($bSssL, 2) }}</td>
+                    <td>{{ number_format($bSssC, 2) }}</td>
+                    <td>{{ number_format($bPiL, 2) }}</td>
+                    <td>{{ number_format($bCa, 2) }}</td>
+                    <td>{{ number_format($bShort, 2) }}</td>
+                    <td>{{ number_format($bSss, 2) }}</td>
+                    <td>{{ number_format($bPrem, 2) }}</td>
+                    <td>{{ number_format($bPh, 2) }}</td>
+                    <td>{{ number_format($bPi, 2) }}</td>
+                    <td class="bold">{{ number_format($bNet, 2) }}</td>
+                </tr>
+            @endforeach
+        </tbody>
+        <tfoot>
+            <tr class="bold">
+                <td class="text-left">TOTAL (ALL BRANCHES)</td>
+                <td>{{ number_format($overallTotal['basic'], 2) }}</td>
+                <td>{{ number_format($overallTotal['gross'], 2) }}</td>
+                <td>{{ number_format($overallTotal['sss_loan'], 2) }}</td>
+                <td>{{ number_format($overallTotal['sss_cal'], 2) }}</td>
+                <td>{{ number_format($overallTotal['pi_loan'], 2) }}</td>
+                <td>{{ number_format($overallTotal['ca'], 2) }}</td>
+                <td>{{ number_format($overallTotal['short'], 2) }}</td>
+                <td>{{ number_format($overallTotal['sss'], 2) }}</td>
+                <td>{{ number_format($overallTotal['prem'], 2) }}</td>
+                <td>{{ number_format($overallTotal['ph'], 2) }}</td>
+                <td>{{ number_format($overallTotal['pi'], 2) }}</td>
+                <td style="background-color: #eee;">{{ number_format($overallTotal['net'], 2) }}</td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
 
-    // ======================
-    // Contributions / Loans based on cutoff
-    // ======================
-    $sss_ee = $isFirstCutoff ? ($payroll->contribution->sss_ee ?? 0) : 0;
-    $philhealth_ee = $isFirstCutoff ? ($payroll->contribution->philhealth_ee ?? 0) : 0;
-    $pagibig_ee = $isFirstCutoff ? ($payroll->contribution->pagibig_ee ?? 0) : 0;
-    $premium_voluntary_ss_contribution = $isFirstCutoff ? ($payroll->contribution->premium_voluntary_ss_contribution ?? 0) : 0;
+{{-- INDIVIDUAL BRANCH DETAILS (YOUR ORIGINAL DESIGN) --}}
+@foreach($groupedPayrolls as $branchName => $payrolls)
+<div class="{{ !$loop->last ? 'page-break' : '' }}">
+    <h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
+    Payroll Summary - {{ $period->description }} <br>
+    Branch: {{ $branchName ?? 'No Branch' }}
 
-    $sss_er = $isFirstCutoff ? ($payroll->contribution->sss_er ?? 0) : 0;
-    $philhealth_er = $isFirstCutoff ? ($payroll->contribution->philhealth_er ?? 0) : 0;
-    $pagibig_er = $isFirstCutoff ? ($payroll->contribution->pagibig_er ?? 0) : 0;
+    @php
+    $columns = [
+        'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
+        'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
+        'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 'philhealth_er', 'philhealth_ee',
+        'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 'total_deductions', 'net_pay'
+    ];
 
-    $sss_salary_loan = $isSecondCutoff ? ($payroll->contribution->sss_salary_loan ?? 0) : 0;
-    $sss_calamity_loan = $isSecondCutoff ? ($payroll->contribution->sss_calamity_loan ?? 0) : 0;
-    $pagibig_salary_loan = $isSecondCutoff ? ($payroll->contribution->pagibig_salary_loan ?? 0) : 0;
+    $admin = array_fill_keys($columns, 0);
+    $field = array_fill_keys($columns, 0);
+    @endphp
 
-    // Manual deductions always included
-    $cash_advance = $payroll->cash_advance ?? 0;
-    $shortages = $payroll->shortages ?? 0;
-    $other_deduction = $payroll->other_deduction ?? 0;
+    <table>
+        <tr>
+            <th class="text-left">Employee Name</th>
+            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary', 'Overtime Pay', 'Holiday Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
+                <th>{{ $header }}</th>
+            @endforeach
+        </tr>
 
-    // Total row deductions
-    $row_total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_voluntary_ss_contribution
-                            + $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan
-                            + $cash_advance + $shortages + $other_deduction;
+        @foreach($payrolls as $payroll)
+        @php
+            $type = $payroll->employee->employee_type ?? 'Field';
+            
+            $sss_ee = $isFirst ? ($payroll->contribution->sss_ee ?? 0) : 0;
+            $sss_er = $isFirst ? ($payroll->contribution->sss_er ?? 0) : 0;
+            $ph_ee = $isFirst ? ($payroll->contribution->philhealth_ee ?? 0) : 0;
+            $ph_er = $isFirst ? ($payroll->contribution->philhealth_er ?? 0) : 0;
+            $pi_ee = $isFirst ? ($payroll->contribution->pagibig_ee ?? 0) : 0;
+            $pi_er = $isFirst ? ($payroll->contribution->pagibig_er ?? 0) : 0;
+            $prem = $isFirst ? ($payroll->contribution->premium_voluntary_ss_contribution ?? 0) : 0;
 
-    $totalOvertime = ($payroll->overtime_salary ?? 0)
-                     + ($payroll->night_diff_salary ?? 0)
-                     + ($payroll->sunday_ot_salary ?? 0)
-                     + ($payroll->rest_day_ot_salary ?? 0)
-                     + ($payroll->night_diff_ot_salary ?? 0);
-@endphp
+            $sss_loan = $isSecond ? ($payroll->contribution->sss_salary_loan ?? 0) : 0;
+            $sss_cal = $isSecond ? ($payroll->contribution->sss_calamity_loan ?? 0) : 0;
+            $pi_loan = $isSecond ? ($payroll->contribution->pagibig_salary_loan ?? 0) : 0;
 
-<tr>
-    <td class="text-left">{{ $payroll->employee->full_name }}</td>
-    <td>{{ $payroll->days_worked }}</td>
-    <td>{{ $payroll->days_absent }}</td>
-    <td>{{ number_format($payroll->undertime_hours,2) }}</td>
-    <td>{{ number_format($payroll->daily_rate,2) }}</td>
-    <td>{{ number_format($payroll->basic_salary,2) }}</td>
-    <td>{{ number_format($totalOvertime,2) }}</td>
-    <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
-    <td>{{ number_format($payroll->gross_pay,2) }}</td>
-    <td>{{ number_format($cash_advance,2) }}</td>
-    <td>{{ number_format($shortages,2) }}</td>
-    <td>{{ number_format($other_deduction,2) }}</td>
-    <td>{{ number_format($sss_er,2) }}</td>
-    <td>{{ number_format($sss_ee,2) }}</td>
-    <td>{{ number_format($premium_voluntary_ss_contribution,2) }}</td>
-    <td>{{ number_format($sss_salary_loan,2) }}</td>
-    <td>{{ number_format($sss_calamity_loan,2) }}</td>
-    <td>{{ number_format($philhealth_er,2) }}</td>
-    <td>{{ number_format($philhealth_ee,2) }}</td>
-    <td>{{ number_format($pagibig_er,2) }}</td>
-    <td>{{ number_format($pagibig_ee,2) }}</td>
-    <td>{{ number_format($pagibig_salary_loan,2) }}</td>
-    <td class="bold">{{ number_format($row_total_deductions,2) }}</td>
-    <td class="bold">{{ number_format($payroll->gross_pay - $row_total_deductions,2) }}</td>
-    <td class="signature"></td>
-</tr>
+            $cash = $payroll->cash_advance ?? 0;
+            $short = $payroll->shortages ?? 0;
+            $other = $payroll->other_deduction ?? 0;
+
+            $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
+            $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
+            $nP = $payroll->gross_pay - $totDed;
+
+            $cat = (strtolower($type) == 'admin') ? 'admin' : 'field';
+            $admin_field_map = ['days_worked' => $payroll->days_worked, 'basic_salary' => $payroll->basic_salary, 'gross_pay' => $payroll->gross_pay, 'total_deductions' => $totDed, 'net_pay' => $nP];
+            foreach($admin_field_map as $key => $val) { ${$cat}[$key] += $val; }
+        @endphp
+
+        <tr>
+            <td class="text-left">{{ $payroll->employee->full_name }}</td>
+            <td>{{ $payroll->days_worked }}</td>
+            <td>{{ $payroll->days_absent }}</td>
+            <td>{{ number_format($payroll->undertime_hours,2) }}</td>
+            <td>{{ number_format($payroll->daily_rate,2) }}</td>
+            <td>{{ number_format($payroll->basic_salary,2) }}</td>
+            <td>{{ number_format($totalOT,2) }}</td>
+            <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
+            <td>{{ number_format($payroll->gross_pay,2) }}</td>
+            <td>{{ number_format($cash,2) }}</td>
+            <td>{{ number_format($short,2) }}</td>
+            <td>{{ number_format($other,2) }}</td>
+            <td>{{ number_format($sss_er,2) }}</td>
+            <td>{{ number_format($sss_ee,2) }}</td>
+            <td>{{ number_format($prem,2) }}</td>
+            <td>{{ number_format($sss_loan,2) }}</td>
+            <td>{{ number_format($sss_cal,2) }}</td>
+            <td>{{ number_format($ph_er,2) }}</td>
+            <td>{{ number_format($ph_ee,2) }}</td>
+            <td>{{ number_format($pi_er,2) }}</td>
+            <td>{{ number_format($pi_ee,2) }}</td>
+            <td>{{ number_format($pi_loan,2) }}</td>
+            <td class="bold">{{ number_format($totDed,2) }}</td>
+            <td class="bold">{{ number_format($nP,2) }}</td>
+            <td class="signature"></td>
+        </tr>
+        @endforeach
+
+        <tr class="bold"><td class="text-left">TOTAL ADMIN</td>@foreach($columns as $col)<td>{{ number_format($admin[$col],2) }}</td>@endforeach<td></td></tr>
+        <tr class="bold"><td class="text-left">TOTAL FIELD</td>@foreach($columns as $col)<td>{{ number_format($field[$col],2) }}</td>@endforeach<td></td></tr>
+        <tr class="bold"><td class="text-left">TOTAL BRANCH</td>@foreach($columns as $col)<td>{{ number_format($admin[$col] + $field[$col], 2) }}</td>@endforeach<td></td></tr>
+    </table>
+
+    <br><br>
+    <table class="no-border">
+        <tr>
+            <td class="text-left"><div class="signature-line"></div>Prepared by:<br>Name and Signature</td>
+            <td></td>
+            <td class="text-left"><div class="signature-line"></div>Approved by:<br><strong>EDUARDO A. OCAMPO</strong><br>Authorized Signatory</td>
+        </tr>
+    </table>
+</div>
 @endforeach
-
-    {{-- TOTAL ADMIN --}}
-    <tr class="bold">
-        <td class="text-left">TOTAL ADMIN</td>
-        @foreach($columns as $col)
-            <td>{{ number_format($admin[$col],2) }}</td>
-        @endforeach
-        <td></td>
-    </tr>
-
-    {{-- TOTAL FIELD --}}
-    <tr class="bold">
-        <td class="text-left">TOTAL FIELD</td>
-        @foreach($columns as $col)
-            <td>{{ number_format($field[$col],2) }}</td>
-        @endforeach
-        <td></td>
-    </tr>
-
-    {{-- TOTAL COMPANY --}}
-    <tr class="bold">
-        <td class="text-left">TOTAL COMPANY</td>
-        @foreach($columns as $col)
-            <td>{{ number_format($grand[$col],2) }}</td>
-        @endforeach
-        <td></td>
-    </tr>
-</table>
-
-<br><br><br>
-
-<table class="no-border">
-    <tr>
-        <td class="text-left">
-            <div class="signature-line"></div>
-            Prepared by:<br>Name and Signature
-        </td>
-        <td></td>
-        <td class="text-left">
-            <div class="signature-line"></div>
-            Approved by:<br>
-            <strong>EDUARDO A. OCAMPO</strong><br>
-            Authorized Signatory
-        </td>
-    </tr>
-</table>
-
-
 
 </body>
 </html>
