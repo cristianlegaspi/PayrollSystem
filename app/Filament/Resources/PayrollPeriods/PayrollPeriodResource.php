@@ -21,7 +21,7 @@ class PayrollPeriodResource extends Resource
 {
     protected static ?string $model = PayrollPeriod::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::Calendar;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::CalendarDateRange;
 
     protected static ?string $recordTitleAttribute = 'PayrollPeriod';
 
