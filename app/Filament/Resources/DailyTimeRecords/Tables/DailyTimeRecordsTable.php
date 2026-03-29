@@ -21,6 +21,7 @@ class DailyTimeRecordsTable
             ->columns([
                 TextColumn::make('employee.full_name')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('work_date')
                     ->date()

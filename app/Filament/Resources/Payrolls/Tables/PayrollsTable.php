@@ -17,9 +17,11 @@ class PayrollsTable
             ->columns([
                 TextColumn::make('employee.full_name')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('payrollPeriod.description')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('days_worked')
                     ->numeric()

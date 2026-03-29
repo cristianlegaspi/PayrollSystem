@@ -21,6 +21,7 @@ class UsersTable
                     ->label('Email address')
                     ->searchable(),
                 TextColumn::make('branch.branch_name')
+                    ->searchable()
                     ->label('Branch'),
                 TextColumn::make('role.role_name')
                     ->label('Role'),

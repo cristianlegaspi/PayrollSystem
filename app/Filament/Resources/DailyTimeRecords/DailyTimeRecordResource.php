@@ -83,6 +83,8 @@ class DailyTimeRecordResource extends Resource
         // Admin / Super Admin: see all records, no filter
         return $query;
     }
+    
+    
 
 
 }
