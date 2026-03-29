@@ -17,6 +17,7 @@ class ContributionsTable
             ->columns([
                 TextColumn::make('employee.full_name')
                     ->numeric()
+                    ->searchable()
                     ->sortable(),
                 TextColumn::make('sss_ee')
                     ->numeric()
