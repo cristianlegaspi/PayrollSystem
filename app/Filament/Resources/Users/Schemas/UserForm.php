@@ -2,7 +2,6 @@
 
 namespace App\Filament\Resources\Users\Schemas;
 
-use Filament\Forms\Components\DateTimePicker;
 use Filament\Forms\Components\TextInput;
 use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
@@ -19,7 +18,7 @@ class UserForm
                     ->schema([
 
                         TextInput::make('name')
-                        ->unique()
+                            ->unique()
                             ->required(),
 
                         Select::make('branch_id')
@@ -37,16 +36,27 @@ class UserForm
                             ->email()
                             ->unique()
                             ->required(),
+
                         TextInput::make('password')
                             ->password()
-                            ->required(),
+                            ->revealable()
+                            ->required(fn ($context) => $context === 'create')
+                            ->dehydrated(fn ($state) => filled($state))
+                            ->confirmed() // ensures password matches confirmation
+                            ->placeholder('Leave blank to keep current password'),
+
+                        TextInput::make('password_confirmation')
+                            ->password()
+                            ->label('Confirm Password')
+                            ->dehydrated(false)
+                            ->placeholder('Repeat new password if changing'),
 
                         Select::make('role_id')
                             ->label('Role')
                             ->relationship('role', 'role_name')
                             ->nullable(),
 
-                    ])->columns(3),
+                    ])->columns(4),
             ])->columns(1);
     }
 }
