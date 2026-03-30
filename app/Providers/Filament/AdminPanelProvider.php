@@ -27,6 +27,7 @@ class AdminPanelProvider extends PanelProvider
     {
         return $panel
             ->default()
+            ->globalSearch(false)
             ->id('admin')
             ->path('admin')
             ->login()
