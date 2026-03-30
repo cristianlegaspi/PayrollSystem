@@ -24,53 +24,48 @@ class ListDailyTimeRecords extends ListRecords
 
         return [
             // Button to create new DTR
-           
+
             // Export PDF button with Employee & Date filters
             Action::make('Export PDF')
                 ->label('Generate DTR report')
                 ->color('success')
+                ->icon('heroicon-o-printer')
                 ->form([
                     Select::make('employee_id')
-                        ->label('Employee')
+                        ->label('Employee (Leave blank for ALL)')
+                        ->placeholder('All Employees')
                         ->relationship(
                             name: 'employee',
                             titleAttribute: 'full_name',
-                            modifyQueryUsing: function ($query, $get) use ($user) {
+                            modifyQueryUsing: function ($query) use ($user) {
                                 $roleName = $user->role?->role_name;
-
-                                // Admin/Super Admin can see all employees
-                                if (in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
-                                    return $get('branch_id')
-                                        ? $query->where('branch_id', $get('branch_id'))
-                                        : $query;
+                                // If not Admin/Owner, restrict to their own branch
+                                if (!in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
+                                    return $query->where('branch_id', $user->branch_id);
                                 }
-                                  if ($user->branch?->branch_name === 'All Branch') {
-                                    return $query;
-                                }
-
-                                // Normal users: only employees in their branch
-                                return $query->where('branch_id', $user->branch_id);
+                                return $query;
                             }
                         )
                         ->searchable()
-                        ->preload()
-                        ->required(),
+                        ->preload(), // Removed 'required()' to allow bulk generation
 
-                    DatePicker::make('from')->label('Work Date From'),
-                    DatePicker::make('to')->label('Work Date To'),
+                    DatePicker::make('from')
+                        ->label('Work Date From')
+                        ->required(), // Dates are usually required for a clean report
+                    DatePicker::make('to')
+                        ->label('Work Date To')
+                        ->required(),
                 ])
                 ->action(function ($data) {
-                    $params = array_filter([
+                    return redirect()->to(route('dtr.print', [
                         'employee_id' => $data['employee_id'] ?? null,
-                        'from' => $data['from'] ?? null,
-                        'to' => $data['to'] ?? null,
-                    ]);
-
-                    return redirect()->to(route('dtr.print', $params));
+                        'from' => $data['from'],
+                        'to' => $data['to'],
+                    ]));
                 })
                 ->openUrlInNewTab(),
 
-                 CreateAction::make()
+            CreateAction::make()
                 ->label('Create New DTR'),
 
         ];
