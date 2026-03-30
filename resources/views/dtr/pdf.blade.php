@@ -53,12 +53,12 @@
                 <tr>
                     <th>Date</th>
                     <th>Day</th>
-                    <th>S1 In</th>
-                    <th>S1 Out</th>
-                    <th>S2 In</th>
-                    <th>S2 Out</th>
-                    <th>S3 In</th>
-                    <th>S3 Out</th>
+                    <th>Shift 1 In</th>
+                    <th>Shift 1 Out</th>
+                    <th>Shift 2 In</th>
+                    <th>Shift 2 Out</th>
+                    <th>Shift 3 In</th>
+                    <th>Shift 3 Out</th>
                     <th>Reg Hrs</th>
                     <th>UT</th>
                     <th>OT</th>
