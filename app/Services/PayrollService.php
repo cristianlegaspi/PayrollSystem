@@ -12,7 +12,6 @@ class PayrollService
 {
     public function computePayrollForPeriod(PayrollPeriod $period)
     {
-        // 1. Identify employees with records in this period
         $employeeIds = DailyTimeRecord::whereBetween('work_date', [$period->start_date, $period->end_date])
             ->pluck('employee_id')
             ->unique();
@@ -46,7 +45,6 @@ class PayrollService
                 $remarks = strtolower($dtr->remarks ?? '');
                 $status = strtolower($dtr->status ?? '');
                 
-                // MAPPED TO YOUR EXACT DTR MODEL FIELDS
                 $otHrs = (float) ($dtr->overtime_hours ?? 0);       
                 $rdOtHrs = (float) ($dtr->rest_day_ot_hours ?? 0);     
                 $sunOtHrs = (float) ($dtr->sunday_ot_hours ?? 0);   
@@ -54,42 +52,47 @@ class PayrollService
                 $ndOtHrs = (float) ($dtr->night_diff_ot_hours ?? 0);
                 $utHrs = (float) ($dtr->undertime_hours ?? 0);
                 $totalHrs = (float) ($dtr->total_hours ?? 0);
+                $regHrs = (float) ($dtr->reg_hrs ?? 0); // Assuming reg_hrs exists or use totalHrs
                 
                 $totalUndertimeHours += $utHrs;
 
-                // --- 1. REST DAY OT LOGIC (Marlon Mar 23 Fix) ---
+                // --- 1. REST DAY OT LOGIC ---
                 if ($rdOtHrs > 0) {
+                    // Pay the OT Premium
                     $totalRestDaySalary += ($rdOtHrs * ($hourlyRate * 1.3));
-                    $daysWorked += 1;
+                    // DO NOT increment $daysWorked here to match Alejandro's 14-day count
                 } 
-                // --- 2. LEGAL HOLIDAY LOGIC (Marlon Mar 20 Fix) ---
+                
+                // --- 2. LEGAL HOLIDAY LOGIC (Mar 20) ---
                 elseif (str_contains($remarks, 'legal holiday')) {
-                    // Double basic pay (8 hrs)
                     $totalRegularSalary += ($dailyRate * 2);
-                    // Holiday OT is usually 260% of hourly rate
                     if ($otHrs > 0) {
                         $totalOvertimeSalary += ($otHrs * ($hourlyRate * 2.6));
                     }
-                    $daysWorked += 1;
+                    $daysWorked += 1; // This is a "worked day"
                 }
+
                 // --- 3. SPECIAL HOLIDAY LOGIC ---
-                elseif ($status === 'special_holiday' && $totalHrs > 0) {
+                elseif ($status === 'special_holiday' && ($totalHrs > 0 || $regHrs > 0)) {
                     $totalRegularSalary += ($dailyRate * 1.3);
                     $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.69));
                     $daysWorked += 1;
                 }
+
                 // --- 4. NORMAL WORKING DAY ---
+                // We check if it's a normal duty day (not a Rest Day OT day)
                 elseif ($totalHrs > 0 || $status === 'on_duty' || $status === 'night_shift') {
                     $totalRegularSalary += $dailyRate;
                     $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
                     $daysWorked += 1;
                 } 
+
                 // --- 5. ABSENCE LOGIC ---
                 elseif ($status === 'absent_without_pay') {
                     $daysAbsent += 1;
                 }
 
-                // --- 6. ADD-ONS (Sunday & Night Diff) ---
+                // --- 6. ADD-ONS (Always calculated if present) ---
                 if ($sunOtHrs > 0) {
                     $totalSundaySalary += ($sunOtHrs * ($hourlyRate * 0.30));
                 }
@@ -111,7 +114,7 @@ class PayrollService
                          $totalNightDiffSalary + 
                          $totalNightDiffOtSalary) - $undertimeDeduction;
 
-            // Simple deduction logic from contribution model
+            // Simple deduction logic
             $totalDeductions = 0;
             if ($employee->contribution) {
                 $startDay = Carbon::parse($period->start_date)->day;
@@ -125,11 +128,10 @@ class PayrollService
                 }
             }
 
-            // Final Update/Create for the Payroll Table
             Payroll::updateOrCreate(
                 ['employee_id' => $employee->id, 'payroll_period_id' => $period->id],
                 [
-                    'days_worked'           => $daysWorked,
+                    'days_worked'           => $daysWorked, // Should now reflect 14
                     'days_absent'           => $daysAbsent,
                     'undertime_hours'       => $totalUndertimeHours,
                     'overtime_hours'        => $dtrs->sum('overtime_hours'),
