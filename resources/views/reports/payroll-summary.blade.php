@@ -186,7 +186,7 @@
             $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
             $nP = $payroll->gross_pay - $totDed;
 
-            // Update every key in the target total array (Fixes your missing totals issue)
+            // Total Aggregation Logic (Now includes EVERY column)
             ${$cat}['days_worked'] += $payroll->days_worked;
             ${$cat}['days_absent'] += $payroll->days_absent;
             ${$cat}['undertime_hours'] += $payroll->undertime_hours;

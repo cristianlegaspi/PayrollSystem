@@ -30,25 +30,39 @@ class PayrollService
             // ==========================================
             // 2. Attendance & Basic Salary
             // ==========================================
-            // Logic: Count days where remarks is 'On Duty' to get exactly 12 days
-            $daysWorked =   $dtrs->whereIn('remarks', ['On Duty', 'On Duty w/ OT', 'Legal Holiday'])->count();
-            $daysAbsent = $dtrs->where('remarks', 'Absent')->count();
+            
+            /**
+             * logic: Count days where employee is present or entitled to pay.
+             * includes 'On Duty', 'On Duty w/ OT', and 'Legal Holiday'.
+             */
+            $daysWorked = $dtrs->whereIn('remarks', [
+                'On Duty', 
+                'On Duty w/ OT', 
+                'Legal Holiday'
+            ])->count();
+
+            /**
+             * logic: Count specific absent remarks to ensure they match your DTR strings.
+             */
+            $daysAbsent = $dtrs->whereIn('remarks', [
+                'Absent', 
+                'Absent Without Pay'
+            ])->count();
             
             // Aligning with your DTR Model column name: 'undertime_hours'
             $totalUndertimeHours = $dtrs->sum('undertime_hours');
 
-            $dailyRate = (float) $employee->daily_rate; // 660.00
-            $hourlyRate = $dailyRate / 8;               // 82.50
+            $dailyRate = (float) $employee->daily_rate; 
+            $hourlyRate = $dailyRate / 8;               
 
-            // Calculation: 12 days * 660.00 = 7,920.00
+            // Basic Salary Computation
             $basicSalary = $dailyRate * $daysWorked;
             $undertimeDeduction = $totalUndertimeHours * $hourlyRate;
             $basicSalaryAfterUndertime = $basicSalary - $undertimeDeduction;
 
             // ==========================================
-            // 3. OT & Premium Computation (Aligned with DTR Model)
+            // 3. OT & Premium Computation
             // ==========================================
-            // Summing using the exact fields from your DTR Model fillable array
             $sumOvertimeHours    = $dtrs->sum('overtime_hours');
             $sumSundayOtHours    = $dtrs->sum('sunday_ot_hours');
             $sumRestDayOtHours   = $dtrs->sum('rest_day_ot_hours');
@@ -59,7 +73,6 @@ class PayrollService
             $overtimeSalary = $sumOvertimeHours * ($hourlyRate * 1.25);
             
             // Sunday & Rest Day Premium (1.30x)
-            // Calculation: 8 hours * (82.5 * 1.30) = 858.00
             $sundayOtSalary  = $sumSundayOtHours * ($hourlyRate * 1.30);
             $restDayOtSalary = $sumRestDayOtHours * ($hourlyRate * 1.30);
             
@@ -67,7 +80,7 @@ class PayrollService
             $nightDiffSalary   = $sumNightDiffHours * ($hourlyRate * 0.10);
             $nightDiffOtSalary = $sumNightDiffOtHours * (($hourlyRate * 1.25) * 0.10);
 
-            // GROSS TOTAL: 7,920.00 (Basic) + 858.00 (Rest Day) = 8,778.00
+            // Gross Pay Calculation
             $grossPay = $basicSalaryAfterUndertime + $overtimeSalary + $sundayOtSalary + $restDayOtSalary + $nightDiffSalary + $nightDiffOtSalary;
 
             // ==========================================
@@ -97,7 +110,6 @@ class PayrollService
             // ==========================================
             // 5. Create or Update Payroll Record
             // ==========================================
-            // We align these keys with your Payroll Model's $fillable array
             Payroll::updateOrCreate(
                 [
                     'employee_id'       => $employee->id,
@@ -130,11 +142,10 @@ class PayrollService
                     
                     'gross_pay'             => round($grossPay, 2),
                     'total_deductions'      => round($totalDeductions, 2),
-                    
                 ]
             );
         }
 
-       $period->update(['status'  => 'Finalized','remarks' => 'Pending']);                
+       $period->update(['status' => 'Finalized', 'remarks' => 'Pending']);                 
     }
 }
