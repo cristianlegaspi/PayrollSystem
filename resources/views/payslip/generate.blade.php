@@ -100,7 +100,7 @@ $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss
 </tr>
 
 <tr>
-<td>Regular OT Pay</td>
+<td>Rest Day OT Pay</td>
 <td class="right">PHP {{ number_format($data['rest_day_ot_salary'],2) }}</td>
 </tr>
 
