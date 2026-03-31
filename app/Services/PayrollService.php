@@ -69,7 +69,7 @@ class PayrollService
                 elseif (str_contains($remarks, 'legal holiday')) {
                     $totalRegularSalary += ($dailyRate * 2); 
                     if ($otHrs > 0) {
-                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 2.6));
+                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 0.30));
                     }
                     $daysWorked += 1; 
                 }
