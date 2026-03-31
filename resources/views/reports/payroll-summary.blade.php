@@ -63,13 +63,11 @@
                         $bCa += $p->cash_advance ?? 0;
                         $bShort += $p->shortages ?? 0;
                         
-                        // Loans (Usually 2nd Cutoff)
                         $sL = $isSecond ? ($p->contribution->sss_salary_loan ?? 0) : 0;
                         $sC = $isSecond ? ($p->contribution->sss_calamity_loan ?? 0) : 0;
                         $pL = $isSecond ? ($p->contribution->pagibig_salary_loan ?? 0) : 0;
                         $bSssL += $sL; $bSssC += $sC; $bPiL += $pL;
 
-                        // SSS/PH/PI EE+ER logic based on cutoff
                         $sss_ee = $isFirst ? ($p->contribution->sss_ee ?? 0) : 0;
                         $sss_er = $isFirst ? ($p->contribution->sss_er ?? 0) : 0;
                         $bSss += ($sss_ee + $sss_er);
@@ -85,13 +83,11 @@
                         $pi_er = $isFirst ? ($p->contribution->pagibig_er ?? 0) : 0;
                         $bPi += ($pi_ee + $pi_er);
 
-                        // Net Pay calculation
                         $deductions = $sss_ee + $ph_ee + $pi_ee + $pr + $sL + $sC + $pL 
                                     + ($p->cash_advance ?? 0) + ($p->shortages ?? 0) + ($p->other_deduction ?? 0);
                         $bNet += ($p->gross_pay - $deductions);
                     }
 
-                    // Add to Overall Grand Totals
                     $overallTotal['basic'] += $bBasic; $overallTotal['gross'] += $bGross;
                     $overallTotal['sss_loan'] += $bSssL; $overallTotal['sss_cal'] += $bSssC; $overallTotal['pi_loan'] += $bPiL;
                     $overallTotal['ca'] += $bCa; $overallTotal['short'] += $bShort;
@@ -136,7 +132,7 @@
     </table>
 </div>
 
-{{-- INDIVIDUAL BRANCH DETAILS (YOUR ORIGINAL DESIGN) --}}
+{{-- INDIVIDUAL BRANCH DETAILS --}}
 @foreach($groupedPayrolls as $branchName => $payrolls)
 <div class="{{ !$loop->last ? 'page-break' : '' }}">
     <h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
@@ -144,11 +140,13 @@
     Branch: {{ $branchName ?? 'No Branch' }}
 
     @php
+    // Mapping keys to the order they appear in the header for the footer totals
     $columns = [
         'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
         'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
-        'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 'philhealth_er', 'philhealth_ee',
-        'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 'total_deductions', 'net_pay'
+        'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 
+        'philhealth_er', 'philhealth_ee', 'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 
+        'total_deductions', 'net_pay'
     ];
 
     $admin = array_fill_keys($columns, 0);
@@ -166,6 +164,7 @@
         @foreach($payrolls as $payroll)
         @php
             $type = $payroll->employee->employee_type ?? 'Field';
+            $cat = (strtolower($type) == 'admin') ? 'admin' : 'field';
             
             $sss_ee = $isFirst ? ($payroll->contribution->sss_ee ?? 0) : 0;
             $sss_er = $isFirst ? ($payroll->contribution->sss_er ?? 0) : 0;
@@ -183,13 +182,34 @@
             $short = $payroll->shortages ?? 0;
             $other = $payroll->other_deduction ?? 0;
 
-            $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
             $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
+            $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
             $nP = $payroll->gross_pay - $totDed;
 
-            $cat = (strtolower($type) == 'admin') ? 'admin' : 'field';
-            $admin_field_map = ['days_worked' => $payroll->days_worked, 'basic_salary' => $payroll->basic_salary, 'gross_pay' => $payroll->gross_pay, 'total_deductions' => $totDed, 'net_pay' => $nP];
-            foreach($admin_field_map as $key => $val) { ${$cat}[$key] += $val; }
+            // Update every key in the target total array (Fixes your missing totals issue)
+            ${$cat}['days_worked'] += $payroll->days_worked;
+            ${$cat}['days_absent'] += $payroll->days_absent;
+            ${$cat}['undertime_hours'] += $payroll->undertime_hours;
+            ${$cat}['daily_rate'] += $payroll->daily_rate;
+            ${$cat}['basic_salary'] += $payroll->basic_salary;
+            ${$cat}['overtime_salary'] += $totalOT;
+            ${$cat}['holiday_pay'] += ($payroll->holiday_pay ?? 0);
+            ${$cat}['gross_pay'] += $payroll->gross_pay;
+            ${$cat}['cash_advance'] += $cash;
+            ${$cat}['shortages'] += $short;
+            ${$cat}['other_deduction'] += $other;
+            ${$cat}['sss_er'] += $sss_er;
+            ${$cat}['sss_ee'] += $sss_ee;
+            ${$cat}['premium_voluntary_ss_contribution'] += $prem;
+            ${$cat}['sss_salary_loan'] += $sss_loan;
+            ${$cat}['sss_calamity_loan'] += $sss_cal;
+            ${$cat}['philhealth_er'] += $ph_er;
+            ${$cat}['philhealth_ee'] += $ph_ee;
+            ${$cat}['pagibig_er'] += $pi_er;
+            ${$cat}['pagibig_ee'] += $pi_ee;
+            ${$cat}['pagibig_salary_loan'] += $pi_loan;
+            ${$cat}['total_deductions'] += $totDed;
+            ${$cat}['net_pay'] += $nP;
         @endphp
 
         <tr>
@@ -221,9 +241,28 @@
         </tr>
         @endforeach
 
-        <tr class="bold"><td class="text-left">TOTAL ADMIN</td>@foreach($columns as $col)<td>{{ number_format($admin[$col],2) }}</td>@endforeach<td></td></tr>
-        <tr class="bold"><td class="text-left">TOTAL FIELD</td>@foreach($columns as $col)<td>{{ number_format($field[$col],2) }}</td>@endforeach<td></td></tr>
-        <tr class="bold"><td class="text-left">TOTAL BRANCH</td>@foreach($columns as $col)<td>{{ number_format($admin[$col] + $field[$col], 2) }}</td>@endforeach<td></td></tr>
+        {{-- Totals Rows --}}
+        <tr class="bold">
+            <td class="text-left">TOTAL ADMIN</td>
+            @foreach($columns as $col)
+                <td>{{ number_format($admin[$col],2) }}</td>
+            @endforeach
+            <td></td>
+        </tr>
+        <tr class="bold">
+            <td class="text-left">TOTAL FIELD</td>
+            @foreach($columns as $col)
+                <td>{{ number_format($field[$col],2) }}</td>
+            @endforeach
+            <td></td>
+        </tr>
+        <tr class="bold">
+            <td class="text-left">TOTAL BRANCH</td>
+            @foreach($columns as $col)
+                <td>{{ number_format($admin[$col] + $field[$col], 2) }}</td>
+            @endforeach
+            <td></td>
+        </tr>
     </table>
 
     <br><br>
