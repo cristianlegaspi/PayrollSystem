@@ -44,11 +44,10 @@ class PayrollService
             /**
              * logic: Count specific absent remarks to ensure they match your DTR strings.
              */
-            $daysAbsent = $dtrs->whereIn('remarks', [
-                'Absent', 
-                'Absent Without Pay'
-            ])->count();
-            
+            $daysAbsent = $dtrs->filter(function($dtr) {
+                $remark = trim($dtr->remarks); // Removes hidden spaces
+                return $remark === 'Absent' || $remark === 'Absent Without Pay';
+            })->count();
             // Aligning with your DTR Model column name: 'undertime_hours'
             $totalUndertimeHours = $dtrs->sum('undertime_hours');
 
