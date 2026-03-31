@@ -165,13 +165,10 @@ class DailyTimeRecordForm
 
         // --- LOGIC FOR SUNDAY VS FIELD ---
         
-        // 1. Check REST DAY (Priority)
         if ($status === 'rest_day') {
             $restDayOT = $workedHours;
             $set('remarks', ($workedHours > 0) ? 'Rest Day OT' : 'Rest Day');
-        } 
-        // 2. Sunday Logic - Bypassed for "Field" employees
-        elseif ($isSunday && $employmentTypeName !== 'Field' && $workedHours > 0) {
+        } elseif ($isSunday && $employmentTypeName !== 'Field' && $workedHours > 0) {
             if (!in_array($userRole, ['Admin', 'Super Admin'])) {
                 $ot = $workedHours;
                 $set('remarks', 'Sunday (Regular OT)');
@@ -179,36 +176,47 @@ class DailyTimeRecordForm
                 $sundayOT = $workedHours;
                 $set('remarks', 'Sunday OT');
             }
-        } 
-        // 3. Regular Calculations (Includes Field Employees working on Sundays)
-        else {
+        } else {
             switch ($status) {
                 case 'absent_with_pay':
                     $regular = 8;
                     $set('remarks', 'Absent With Pay');
                     break;
+
                 case 'legal_holiday':
-                    $regular = 8;
-                    $ot = $workedHours;
-                    $set('remarks', 'Legal Holiday');
+                    if ($workedHours >= 8) {
+                        $regular = 8;
+                        $ot = round($workedHours - 8, 2);
+                        $set('remarks', $ot > 0 ? 'Legal Holiday w/ OT' : 'Legal Holiday');
+                    } elseif ($workedHours > 0) {
+                        $regular = $workedHours;
+                        $undertime = round(8 - $workedHours, 2);
+                        $set('remarks', 'Legal Holiday (Undertime)');
+                    } else {
+                        $regular = 8;
+                        $set('remarks', 'Legal Holiday (No Work)');
+                    }
                     break;
+
                 case 'special_holiday':
-                    $ot = $workedHours;
-                    $set('remarks', 'Special Holiday');
+                    if ($workedHours > 0) {
+                        $ot = $workedHours;
+                        $set('remarks', 'Special Holiday');
+                    } else {
+                        $set('remarks', 'Special Holiday (No Work)');
+                    }
                     break;
+
                 default:
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
                         $label = ($workedHours > 8) ? 'On Duty w/ OT' : 'On Duty';
-                        if ($isSunday && $employmentTypeName === 'Field');
                         $set('remarks', $label);
                     } elseif ($workedHours > 0) {
                         $regular = $workedHours;
                         $undertime = round(8 - $workedHours, 2);
-                        $label = 'Undertime';
-                        if ($isSunday && $employmentTypeName === 'Field');
-                        $set('remarks', $label);
+                        $set('remarks', 'Undertime');
                     } else {
                         $set('remarks', 'Absent Without Pay');
                     }

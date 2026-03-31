@@ -18,7 +18,7 @@
 </head>
 <body>
 
-{{-- NEW: GRAND SUMMARY PAGE --}}
+{{-- GRAND SUMMARY PAGE --}}
 <div class="page-break">
     <h3 style="text-align:center;margin-bottom:0;">E.A OCAMPO ENTERPRISES</h3>
     <h4 style="text-align:center;margin-top:5px;">GRAND PAYROLL SUMMARY - {{ $period->description }}</h4>
@@ -58,11 +58,11 @@
                     $bCa = 0; $bShort = 0; $bSss = 0; $bPrem = 0; $bPh = 0; $bPi = 0; $bNet = 0;
 
                     foreach($payrolls as $p) {
-                        $bBasic += $p->basic_salary;
-                        $bGross += $p->gross_pay;
+                        $bBasic += $p->basic_salary ?? 0;
+                        $bGross += $p->gross_pay ?? 0;
                         $bCa += $p->cash_advance ?? 0;
                         $bShort += $p->shortages ?? 0;
-                        
+
                         $sL = $isSecond ? ($p->contribution->sss_salary_loan ?? 0) : 0;
                         $sC = $isSecond ? ($p->contribution->sss_calamity_loan ?? 0) : 0;
                         $pL = $isSecond ? ($p->contribution->pagibig_salary_loan ?? 0) : 0;
@@ -71,10 +71,10 @@
                         $sss_ee = $isFirst ? ($p->contribution->sss_ee ?? 0) : 0;
                         $sss_er = $isFirst ? ($p->contribution->sss_er ?? 0) : 0;
                         $bSss += ($sss_ee + $sss_er);
-                        
+
                         $pr = $isFirst ? ($p->contribution->premium_voluntary_ss_contribution ?? 0) : 0;
                         $bPrem += $pr;
-                        
+
                         $ph_ee = $isFirst ? ($p->contribution->philhealth_ee ?? 0) : 0;
                         $ph_er = $isFirst ? ($p->contribution->philhealth_er ?? 0) : 0;
                         $bPh += ($ph_ee + $ph_er);
@@ -85,7 +85,7 @@
 
                         $deductions = $sss_ee + $ph_ee + $pi_ee + $pr + $sL + $sC + $pL 
                                     + ($p->cash_advance ?? 0) + ($p->shortages ?? 0) + ($p->other_deduction ?? 0);
-                        $bNet += ($p->gross_pay - $deductions);
+                        $bNet += (($p->gross_pay ?? 0) - $deductions);
                     }
 
                     $overallTotal['basic'] += $bBasic; $overallTotal['gross'] += $bGross;
@@ -140,7 +140,6 @@
     Branch: {{ $branchName ?? 'No Branch' }}
 
     @php
-    // Mapping keys to the order they appear in the header for the footer totals
     $columns = [
         'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
         'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
@@ -148,7 +147,6 @@
         'philhealth_er', 'philhealth_ee', 'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 
         'total_deductions', 'net_pay'
     ];
-
     $admin = array_fill_keys($columns, 0);
     $field = array_fill_keys($columns, 0);
     @endphp
@@ -164,8 +162,12 @@
         @foreach($payrolls as $payroll)
         @php
             $type = $payroll->employee->employee_type ?? 'Field';
-            $cat = (strtolower($type) == 'admin') ? 'admin' : 'field';
-            
+            $cat = strtolower($type) == 'admin' ? 'admin' : 'field';
+
+            $startDay = \Carbon\Carbon::parse($period->start_date)->day;
+            $isFirst = $startDay >= 1 && $startDay <= 15;
+            $isSecond = $startDay >= 16;
+
             $sss_ee = $isFirst ? ($payroll->contribution->sss_ee ?? 0) : 0;
             $sss_er = $isFirst ? ($payroll->contribution->sss_er ?? 0) : 0;
             $ph_ee = $isFirst ? ($payroll->contribution->philhealth_ee ?? 0) : 0;
@@ -182,61 +184,45 @@
             $short = $payroll->shortages ?? 0;
             $other = $payroll->other_deduction ?? 0;
 
-            $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
+            $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
+            $holiday = $payroll->holiday_pay ?? 0;
             $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
-            $nP = $payroll->gross_pay - $totDed;
+            $nP = ($payroll->gross_pay ?? 0) - $totDed;
 
-            // Total Aggregation Logic (Now includes EVERY column)
-            ${$cat}['days_worked'] += $payroll->days_worked;
-            ${$cat}['days_absent'] += $payroll->days_absent;
-            ${$cat}['undertime_hours'] += $payroll->undertime_hours;
-            ${$cat}['daily_rate'] += $payroll->daily_rate;
-            ${$cat}['basic_salary'] += $payroll->basic_salary;
-            ${$cat}['overtime_salary'] += $totalOT;
-            ${$cat}['holiday_pay'] += ($payroll->holiday_pay ?? 0);
-            ${$cat}['gross_pay'] += $payroll->gross_pay;
-            ${$cat}['cash_advance'] += $cash;
-            ${$cat}['shortages'] += $short;
-            ${$cat}['other_deduction'] += $other;
-            ${$cat}['sss_er'] += $sss_er;
-            ${$cat}['sss_ee'] += $sss_ee;
-            ${$cat}['premium_voluntary_ss_contribution'] += $prem;
-            ${$cat}['sss_salary_loan'] += $sss_loan;
-            ${$cat}['sss_calamity_loan'] += $sss_cal;
-            ${$cat}['philhealth_er'] += $ph_er;
-            ${$cat}['philhealth_ee'] += $ph_ee;
-            ${$cat}['pagibig_er'] += $pi_er;
-            ${$cat}['pagibig_ee'] += $pi_ee;
-            ${$cat}['pagibig_salary_loan'] += $pi_loan;
-            ${$cat}['total_deductions'] += $totDed;
-            ${$cat}['net_pay'] += $nP;
+            foreach($columns as $col) {
+                if($col == 'overtime_salary') ${$cat}[$col] += $totalOT;
+                elseif($col == 'holiday_pay') ${$cat}[$col] += $holiday;
+                elseif($col == 'total_deductions') ${$cat}[$col] += $totDed;
+                elseif($col == 'net_pay') ${$cat}[$col] += $nP;
+                else ${$cat}[$col] += $payroll->$col ?? 0;
+            }
         @endphp
 
         <tr>
             <td class="text-left">{{ $payroll->employee->full_name }}</td>
-            <td>{{ $payroll->days_worked }}</td>
-            <td>{{ $payroll->days_absent }}</td>
-            <td>{{ number_format($payroll->undertime_hours,2) }}</td>
-            <td>{{ number_format($payroll->daily_rate,2) }}</td>
-            <td>{{ number_format($payroll->basic_salary,2) }}</td>
-            <td>{{ number_format($totalOT,2) }}</td>
-            <td>{{ number_format($payroll->holiday_pay ?? 0,2) }}</td>
-            <td>{{ number_format($payroll->gross_pay,2) }}</td>
-            <td>{{ number_format($cash,2) }}</td>
-            <td>{{ number_format($short,2) }}</td>
-            <td>{{ number_format($other,2) }}</td>
-            <td>{{ number_format($sss_er,2) }}</td>
-            <td>{{ number_format($sss_ee,2) }}</td>
-            <td>{{ number_format($prem,2) }}</td>
-            <td>{{ number_format($sss_loan,2) }}</td>
-            <td>{{ number_format($sss_cal,2) }}</td>
-            <td>{{ number_format($ph_er,2) }}</td>
-            <td>{{ number_format($ph_ee,2) }}</td>
-            <td>{{ number_format($pi_er,2) }}</td>
-            <td>{{ number_format($pi_ee,2) }}</td>
-            <td>{{ number_format($pi_loan,2) }}</td>
-            <td class="bold">{{ number_format($totDed,2) }}</td>
-            <td class="bold">{{ number_format($nP,2) }}</td>
+            <td>{{ $payroll->days_worked ?? 0 }}</td>
+            <td>{{ $payroll->days_absent ?? 0 }}</td>
+            <td>{{ number_format($payroll->undertime_hours ?? 0, 2) }}</td>
+            <td>{{ number_format($payroll->daily_rate ?? 0, 2) }}</td>
+            <td>{{ number_format($payroll->basic_salary ?? 0, 2) }}</td>
+            <td>{{ number_format($totalOT, 2) }}</td>
+            <td>{{ number_format($holiday, 2) }}</td>
+            <td>{{ number_format($payroll->gross_pay ?? 0, 2) }}</td>
+            <td>{{ number_format($cash, 2) }}</td>
+            <td>{{ number_format($short, 2) }}</td>
+            <td>{{ number_format($other, 2) }}</td>
+            <td>{{ number_format($sss_er, 2) }}</td>
+            <td>{{ number_format($sss_ee, 2) }}</td>
+            <td>{{ number_format($prem, 2) }}</td>
+            <td>{{ number_format($sss_loan, 2) }}</td>
+            <td>{{ number_format($sss_cal, 2) }}</td>
+            <td>{{ number_format($ph_er, 2) }}</td>
+            <td>{{ number_format($ph_ee, 2) }}</td>
+            <td>{{ number_format($pi_er, 2) }}</td>
+            <td>{{ number_format($pi_ee, 2) }}</td>
+            <td>{{ number_format($pi_loan, 2) }}</td>
+            <td class="bold">{{ number_format($totDed, 2) }}</td>
+            <td class="bold">{{ number_format($nP, 2) }}</td>
             <td class="signature"></td>
         </tr>
         @endforeach
@@ -245,14 +231,14 @@
         <tr class="bold">
             <td class="text-left">TOTAL ADMIN</td>
             @foreach($columns as $col)
-                <td>{{ number_format($admin[$col],2) }}</td>
+                <td>{{ number_format($admin[$col], 2) }}</td>
             @endforeach
             <td></td>
         </tr>
         <tr class="bold">
             <td class="text-left">TOTAL FIELD</td>
             @foreach($columns as $col)
-                <td>{{ number_format($field[$col],2) }}</td>
+                <td>{{ number_format($field[$col], 2) }}</td>
             @endforeach
             <td></td>
         </tr>
