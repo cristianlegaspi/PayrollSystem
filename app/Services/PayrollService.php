@@ -31,7 +31,7 @@ class PayrollService
             // 2. Attendance & Basic Salary
             // ==========================================
             // Logic: Count days where remarks is 'On Duty' to get exactly 12 days
-            $daysWorked = $dtrs->where('remarks', 'On Duty')->count(); 
+            $daysWorked =   $dtrs->whereIn('remarks', ['On Duty', 'On Duty w/ OT', 'Legal Holiday'])->count();
             $daysAbsent = $dtrs->where('remarks', 'Absent')->count();
             
             // Aligning with your DTR Model column name: 'undertime_hours'
