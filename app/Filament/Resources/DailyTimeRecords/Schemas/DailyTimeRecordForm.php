@@ -163,8 +163,6 @@ class DailyTimeRecordForm
         $sundayOT = 0;
         $restDayOT = 0;
 
-        // --- LOGIC FOR SUNDAY VS FIELD ---
-        
         if ($status === 'rest_day') {
             $restDayOT = $workedHours;
             $set('remarks', ($workedHours > 0) ? 'Rest Day OT' : 'Rest Day');
@@ -198,10 +196,16 @@ class DailyTimeRecordForm
                     }
                     break;
 
+                // ✅ FIXED: Special Holiday now counts as REGULAR (not pure OT)
                 case 'special_holiday':
-                    if ($workedHours > 0) {
-                        $ot = $workedHours;
-                        $set('remarks', 'Special Holiday');
+                    if ($workedHours >= 8) {
+                        $regular = 8;
+                        $ot = round($workedHours - 8, 2);
+                        $set('remarks', $ot > 0 ? 'Special Holiday w/ OT' : 'Special Holiday');
+                    } elseif ($workedHours > 0) {
+                        $regular = $workedHours;
+                        $undertime = round(8 - $workedHours, 2);
+                        $set('remarks', 'Special Holiday (Undertime)');
                     } else {
                         $set('remarks', 'Special Holiday (No Work)');
                     }
