@@ -12,7 +12,6 @@ class PayrollService
 {
     public function computePayrollForPeriod(PayrollPeriod $period)
     {
-        // 1. Identify employees with records in this period
         $employeeIds = DailyTimeRecord::whereBetween('work_date', [$period->start_date, $period->end_date])
             ->pluck('employee_id')
             ->unique();
@@ -22,6 +21,7 @@ class PayrollService
             ->get();
 
         foreach ($employees as $employee) {
+
             $dtrs = DailyTimeRecord::where('employee_id', $employee->id)
                 ->whereBetween('work_date', [$period->start_date, $period->end_date])
                 ->get();
@@ -43,10 +43,10 @@ class PayrollService
             $totalNightDiffOtSalary = 0;
 
             foreach ($dtrs as $dtr) {
+
                 $remarks = strtolower($dtr->remarks ?? '');
                 $status = strtolower($dtr->status ?? '');
 
-                // Hours
                 $otHrs = (float) ($dtr->overtime_hours ?? 0);
                 $rdOtHrs = (float) ($dtr->rest_day_ot_hours ?? 0);
                 $sunOtHrs = (float) ($dtr->sunday_ot_hours ?? 0);
@@ -73,12 +73,12 @@ class PayrollService
                     $daysWorked += 1;
                 }
 
-                // --- 3. SPECIAL HOLIDAY (UPDATED ✅) ---
-                // +30% only, counted as regular day
+                // --- 3. SPECIAL HOLIDAY (FIXED ✅) ---
                 elseif ($status === 'special_holiday' && $totalHrs > 0) {
-                    $totalRegularSalary += ($dailyRate * 1.3);
 
-                    // Use NORMAL OT rate only
+                    // Base day already counted → add ONLY 30% premium
+                    $totalRegularSalary += ($dailyRate * 0.3);
+
                     if ($otHrs > 0) {
                         $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
                     }
@@ -86,8 +86,9 @@ class PayrollService
                     $daysWorked += 1;
                 }
 
-                // --- 4. NORMAL WORKING DAY ---
+                // --- 4. NORMAL DAY ---
                 elseif ($totalHrs > 0 || $status === 'on_duty' || $status === 'night_shift') {
+
                     $totalRegularSalary += $dailyRate;
 
                     if ($otHrs > 0) {
@@ -102,7 +103,7 @@ class PayrollService
                     $daysAbsent += 1;
                 }
 
-                // --- 6. ADD-ONS ---
+                // --- ADD-ONS ---
                 if ($sunOtHrs > 0) {
                     $totalSundaySalary += ($sunOtHrs * ($hourlyRate * 0.30));
                 }
@@ -116,7 +117,7 @@ class PayrollService
                 }
             }
 
-            // --- COMPUTATIONS ---
+            // --- FINAL COMPUTATION ---
             $undertimeDeduction = $totalUndertimeHours * $hourlyRate;
 
             $grossPay = (
@@ -144,7 +145,7 @@ class PayrollService
                 }
             }
 
-            // --- SAVE PAYROLL ---
+            // --- SAVE ---
             Payroll::updateOrCreate(
                 [
                     'employee_id' => $employee->id,
@@ -174,7 +175,6 @@ class PayrollService
             );
         }
 
-        // Finalize Payroll Period
         $period->update(['status' => 'Finalized']);
     }
 }
