@@ -45,80 +45,95 @@ class PayrollService
             foreach ($dtrs as $dtr) {
                 $remarks = strtolower($dtr->remarks ?? '');
                 $status = strtolower($dtr->status ?? '');
-                
-                // Mapped to your DailyTimeRecord Model fields
-                $otHrs = (float) ($dtr->overtime_hours ?? 0);       
-                $rdOtHrs = (float) ($dtr->rest_day_ot_hours ?? 0);     
-                $sunOtHrs = (float) ($dtr->sunday_ot_hours ?? 0);   
+
+                // Hours
+                $otHrs = (float) ($dtr->overtime_hours ?? 0);
+                $rdOtHrs = (float) ($dtr->rest_day_ot_hours ?? 0);
+                $sunOtHrs = (float) ($dtr->sunday_ot_hours ?? 0);
                 $ndHrs = (float) ($dtr->night_diff_hours ?? 0);
                 $ndOtHrs = (float) ($dtr->night_diff_ot_hours ?? 0);
                 $utHrs = (float) ($dtr->undertime_hours ?? 0);
                 $totalHrs = (float) ($dtr->total_hours ?? 0);
-                
+
                 $totalUndertimeHours += $utHrs;
 
-                // --- 1. REST DAY OT LOGIC ---
-                // Pay 130% but DO NOT increment daysWorked (Alejandro Mar 28)
+                // --- 1. REST DAY OT ---
                 if ($rdOtHrs > 0) {
                     $totalRestDaySalary += ($rdOtHrs * ($hourlyRate * 1.3));
-                    // Note: daysWorked is NOT incremented here
-                } 
-                
-                // --- 2. LEGAL HOLIDAY LOGIC ---
-                // Pay 200% and DO increment daysWorked (Alejandro Mar 20)
+                }
+
+                // --- 2. LEGAL HOLIDAY ---
                 elseif (str_contains($remarks, 'legal holiday')) {
-                    $totalRegularSalary += ($dailyRate * 2); 
+                    $totalRegularSalary += ($dailyRate * 2);
+
                     if ($otHrs > 0) {
                         $totalOvertimeSalary += ($otHrs * ($hourlyRate * 2.6));
                     }
-                    $daysWorked += 1; 
+
+                    $daysWorked += 1;
                 }
 
-                // --- 3. SPECIAL HOLIDAY LOGIC ---
+                // --- 3. SPECIAL HOLIDAY (UPDATED ✅) ---
+                // +30% only, counted as regular day
                 elseif ($status === 'special_holiday' && $totalHrs > 0) {
                     $totalRegularSalary += ($dailyRate * 1.3);
-                    $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.69));
+
+                    // Use NORMAL OT rate only
+                    if ($otHrs > 0) {
+                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
+                    }
+
                     $daysWorked += 1;
                 }
 
                 // --- 4. NORMAL WORKING DAY ---
                 elseif ($totalHrs > 0 || $status === 'on_duty' || $status === 'night_shift') {
                     $totalRegularSalary += $dailyRate;
-                    $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
-                    $daysWorked += 1;
-                } 
 
-                // --- 5. ABSENCE LOGIC ---
+                    if ($otHrs > 0) {
+                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
+                    }
+
+                    $daysWorked += 1;
+                }
+
+                // --- 5. ABSENT ---
                 elseif ($status === 'absent_without_pay') {
                     $daysAbsent += 1;
                 }
 
-                // --- 6. ADD-ONS (Always calculated) ---
+                // --- 6. ADD-ONS ---
                 if ($sunOtHrs > 0) {
                     $totalSundaySalary += ($sunOtHrs * ($hourlyRate * 0.30));
                 }
+
                 if ($ndHrs > 0) {
                     $totalNightDiffSalary += ($ndHrs * ($hourlyRate * 0.10));
                 }
+
                 if ($ndOtHrs > 0) {
                     $totalNightDiffOtSalary += ($ndOtHrs * ($hourlyRate * 1.25 * 0.10));
                 }
             }
 
-            // Calculations
+            // --- COMPUTATIONS ---
             $undertimeDeduction = $totalUndertimeHours * $hourlyRate;
-            
-            $grossPay = ($totalRegularSalary + 
-                         $totalOvertimeSalary + 
-                         $totalSundaySalary + 
-                         $totalRestDaySalary + 
-                         $totalNightDiffSalary + 
-                         $totalNightDiffOtSalary) - $undertimeDeduction;
 
-            // Simple deduction logic
+            $grossPay = (
+                $totalRegularSalary +
+                $totalOvertimeSalary +
+                $totalSundaySalary +
+                $totalRestDaySalary +
+                $totalNightDiffSalary +
+                $totalNightDiffOtSalary
+            ) - $undertimeDeduction;
+
+            // --- DEDUCTIONS ---
             $totalDeductions = 0;
+
             if ($employee->contribution) {
                 $startDay = Carbon::parse($period->start_date)->day;
+
                 if ($startDay <= 15) {
                     $totalDeductions += ($employee->contribution->sss_ee ?? 0);
                     $totalDeductions += ($employee->contribution->philhealth_ee ?? 0);
@@ -129,11 +144,14 @@ class PayrollService
                 }
             }
 
-            // Final Update to Payroll Table
+            // --- SAVE PAYROLL ---
             Payroll::updateOrCreate(
-                ['employee_id' => $employee->id, 'payroll_period_id' => $period->id],
                 [
-                    'days_worked'           => $daysWorked, // Will be 14 for Alejandro
+                    'employee_id' => $employee->id,
+                    'payroll_period_id' => $period->id
+                ],
+                [
+                    'days_worked'           => $daysWorked,
                     'days_absent'           => $daysAbsent,
                     'undertime_hours'       => $totalUndertimeHours,
                     'overtime_hours'        => $dtrs->sum('overtime_hours'),
@@ -150,12 +168,13 @@ class PayrollService
                     'sunday_ot_hours'       => $dtrs->sum('sunday_ot_hours'),
                     'sunday_ot_salary'      => round($totalSundaySalary, 2),
                     'undertime_deduction'   => round($undertimeDeduction, 2),
-                    'rest_day_ot_hours'     => $dtrs->sum('rest_day_ot_hours'), 
+                    'rest_day_ot_hours'     => $dtrs->sum('rest_day_ot_hours'),
                     'rest_day_ot_salary'    => round($totalRestDaySalary, 2),
                 ]
             );
         }
 
+        // Finalize Payroll Period
         $period->update(['status' => 'Finalized']);
     }
 }
