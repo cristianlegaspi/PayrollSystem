@@ -75,8 +75,14 @@ $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss
 </tr>
 
 <tr>
-<td>Basic Salary ({{ $data['days_worked'] }} Day + Legal Holiday and Special Holiday)</td>
-<td class="right">PHP {{ number_format($data['basic_salary'],2) }}</td>
+    <td>
+        Basic Salary (
+            {{ $data['days_worked'] }} Day{{ $data['days_worked'] != 1 ? 's' : '' }} 
+            + {{ $data['legal_holidays'] }} Legal Holiday{{ $data['legal_holidays'] != 1 ? 's' : '' }} 
+            and {{ $data['special_holidays'] }} Special Holiday{{ $data['special_holidays'] != 1 ? 's' : '' }}
+        )
+    </td>
+    <td class="right">PHP {{ number_format($data['basic_salary'], 2) }}</td>
 </tr>
 
 <tr>

@@ -12,6 +12,26 @@ class PayslipService
         $employee = $payroll->employee;
         $contribution = $payroll->contribution;
 
+        $period = $payroll->payrollPeriod;
+
+       $period = $payroll->payrollPeriod;
+
+        // We fetch the counts by looking at the DailyTimeRecord model
+        // We use trim and lowercase to ensure we find the match even if there are spaces
+        $legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$period->start_date, $period->end_date])
+            ->where('remarks', 'LIKE', '%Legal Holiday%')
+            ->count();
+
+        $specialHolidays = \App\Models\DailyTimeRecord::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$period->start_date, $period->end_date])
+            ->where('remarks', 'LIKE', '%Special Holiday%')
+            ->count();
+
+
+
+
+
         $data = [
             'company' => 'FULLTANK GAS STATION',
             'period' => $payroll->payrollPeriod->description,
@@ -21,6 +41,14 @@ class PayslipService
 
             'daily_rate' => $payroll->daily_rate,
             'days_worked' => $payroll->days_worked,
+
+            // Pass the calculated counts here
+            'legal_holidays' => $legalHolidays,
+            'special_holidays' => $specialHolidays,
+
+
+
+
             'days_absent' => $payroll->days_absent,
             'undertime_hours' => $payroll->undertime_hours,
             'undertime_deduction' => $payroll->undertime_deduction,
