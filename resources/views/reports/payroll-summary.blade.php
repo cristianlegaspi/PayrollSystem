@@ -27,7 +27,7 @@
         <thead>
             <tr>
                 <th class="text-left">Branch</th>
-                <th>Total Basic Salary</th>
+                <th>Total Basic Salary + Holiday Salary</th>
                 <th>Total Gross Pay</th>
                 <th>SSS Salary Loan</th>
                 <th>SSS Calamity Loan</th>
@@ -154,7 +154,7 @@
     <table>
         <tr>
             <th class="text-left">Employee Name</th>
-            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary', 'Overtime Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
+            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary + Holiday Salary', 'Overtime Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
                 <th>{{ $header }}</th>
             @endforeach
         </tr>
