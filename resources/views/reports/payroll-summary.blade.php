@@ -142,7 +142,7 @@
     @php
     $columns = [
         'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
-        'overtime_salary', 'holiday_pay', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
+        'overtime_salary', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
         'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 
         'philhealth_er', 'philhealth_ee', 'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 
         'total_deductions', 'net_pay'
@@ -154,7 +154,7 @@
     <table>
         <tr>
             <th class="text-left">Employee Name</th>
-            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary', 'Overtime Pay', 'Holiday Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
+            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary', 'Overtime Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
                 <th>{{ $header }}</th>
             @endforeach
         </tr>
@@ -185,13 +185,13 @@
             $other = $payroll->other_deduction ?? 0;
 
             $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
-            $holiday = $payroll->holiday_pay ?? 0;
+            // $holiday = $payroll->holiday_pay ?? 0;
             $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
             $nP = ($payroll->gross_pay ?? 0) - $totDed;
 
             foreach($columns as $col) {
                 if($col == 'overtime_salary') ${$cat}[$col] += $totalOT;
-                elseif($col == 'holiday_pay') ${$cat}[$col] += $holiday;
+                // elseif($col == 'holiday_pay') ${$cat}[$col] += $holiday;
                 elseif($col == 'total_deductions') ${$cat}[$col] += $totDed;
                 elseif($col == 'net_pay') ${$cat}[$col] += $nP;
                 else ${$cat}[$col] += $payroll->$col ?? 0;
@@ -206,7 +206,7 @@
             <td>{{ number_format($payroll->daily_rate ?? 0, 2) }}</td>
             <td>{{ number_format($payroll->basic_salary ?? 0, 2) }}</td>
             <td>{{ number_format($totalOT, 2) }}</td>
-            <td>{{ number_format($holiday, 2) }}</td>
+            {{-- <td>{{ number_format($holiday, 2) }}</td> --}}
             <td>{{ number_format($payroll->gross_pay ?? 0, 2) }}</td>
             <td>{{ number_format($cash, 2) }}</td>
             <td>{{ number_format($short, 2) }}</td>
