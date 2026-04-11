@@ -68,6 +68,7 @@ class PayrollInfolist
                     ->schema([
 
                      TextEntry::make('basic_salary')
+                     ->label('(Regular Salary + Legal Holiday Salary + Special Holiday Salary)')
                     ->numeric(),
                 TextEntry::make('overtime_salary')
                     ->label('Regular OT Salary')
@@ -116,7 +117,7 @@ class PayrollInfolist
                     ->badge(),
                 
 
-             ])->columns(3),
+             ])->columns(2),
 
 
 
