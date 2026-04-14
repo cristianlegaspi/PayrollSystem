@@ -97,6 +97,11 @@ class PayrollForm
                     ->numeric()
                     ->default(0),
 
+                TextInput::make('other_incentives')
+                    ->numeric()
+                    ->label('Other Incentives')
+                    ->default(0),
+
                 TextInput::make('net_pay')
                     ->required()
                     ->numeric()

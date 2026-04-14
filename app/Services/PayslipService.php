@@ -60,6 +60,8 @@ class PayslipService
             'night_diff_ot_salary' => $payroll->night_diff_ot_salary,
             'rest_day_ot_salary' => $payroll->rest_day_ot_salary,
             'sunday_ot_salary' => $payroll->sunday_ot_salary,
+            'other_incentives' => $payroll->other_incentives ?? 0,
+            
             'gross_pay' => $payroll->gross_pay,
 
             // DEDUCTIONS
@@ -73,6 +75,7 @@ class PayslipService
             'cash_advance' => $payroll->cash_advance ?? 0,
             'shortages' => $payroll->shortages ?? 0,
             'other_deduction' => $payroll->other_deduction ?? 0,
+            
 
             'total_deductions' => $payroll->total_deductions +
                                   ($payroll->cash_advance ?? 0) +

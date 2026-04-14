@@ -102,6 +102,12 @@ class PayrollsTable
                     ->money('PHP')
                      ->toggleable(isToggledHiddenByDefault: true)
                     ->sortable(),
+                      TextColumn::make('other_incentives')
+                    ->numeric()
+                     ->badge()
+                    ->money('PHP')
+                     ->toggleable(isToggledHiddenByDefault: true)
+                    ->sortable(),
                 TextColumn::make('net_pay')
                     ->numeric()
                      ->badge()

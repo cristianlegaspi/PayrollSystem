@@ -112,6 +112,8 @@ class PayrollInfolist
                     ->numeric(),
                  TextEntry::make('other_deduction')
                     ->numeric(),
+                   TextEntry::make('other_incentives')
+                    ->numeric(),
                 TextEntry::make('net_pay')
                     ->numeric()
                     ->badge(),

@@ -25,6 +25,7 @@ class Payroll extends Model
         'cash_advance',
         'shortages',    
         'other_deduction',
+        'other_incentives',
         'net_pay',
         'sunday_ot_hours',
         'sunday_ot_salary',
@@ -61,14 +62,17 @@ class Payroll extends Model
 }
 
     protected static function booted()
-    {
-        static::saving(function ($payroll) {
-            // Recompute net pay whenever record is saved
-            $cashAdvance = $payroll->cash_advance ?? 0;
-            $shortages = $payroll->shortages ?? 0;
-            $other_deduction = $payroll->other_deduction ?? 0;
+{
+    static::saving(function ($payroll) {
 
-            $payroll->net_pay = $payroll->gross_pay - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
-        });
-    }
+        $cashAdvance = $payroll->cash_advance ?? 0;
+        $shortages = $payroll->shortages ?? 0;
+        $other_deduction = $payroll->other_deduction ?? 0;
+        $other_incentives = $payroll->other_incentives ?? 0;
+
+        $payroll->net_pay =
+            ($payroll->gross_pay + $other_incentives)
+            - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
+    });
+}
 }

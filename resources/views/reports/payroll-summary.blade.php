@@ -44,9 +44,20 @@
         <tbody>
             @php
                 $overallTotal = [
-                    'basic' => 0, 'gross' => 0, 'sss_loan' => 0, 'sss_cal' => 0, 'pi_loan' => 0,
-                    'ca' => 0, 'short' => 0, 'sss' => 0, 'prem' => 0, 'ph' => 0, 'pi' => 0, 'net' => 0
+                    'basic' => 0,
+                    'gross' => 0,
+                    'sss_loan' => 0,
+                    'sss_cal' => 0,
+                    'pi_loan' => 0,
+                    'ca' => 0,
+                    'short' => 0,
+                    'sss' => 0,
+                    'prem' => 0,
+                    'ph' => 0,
+                    'pi' => 0,
+                    'net' => 0
                 ];
+
                 $startDay = \Carbon\Carbon::parse($period->start_date)->day;
                 $isFirst = $startDay >= 1 && $startDay <= 15;
                 $isSecond = $startDay >= 16;
@@ -54,19 +65,34 @@
 
             @foreach($groupedPayrolls as $branchName => $payrolls)
                 @php
-                    $bBasic = 0; $bGross = 0; $bSssL = 0; $bSssC = 0; $bPiL = 0;
-                    $bCa = 0; $bShort = 0; $bSss = 0; $bPrem = 0; $bPh = 0; $bPi = 0; $bNet = 0;
+                    $bBasic = 0;
+                    $bGross = 0;
+                    $bSssL = 0;
+                    $bSssC = 0;
+                    $bPiL = 0;
+                    $bCa = 0;
+                    $bShort = 0;
+                    $bSss = 0;
+                    $bPrem = 0;
+                    $bPh = 0;
+                    $bPi = 0;
+                    $bNet = 0;
 
                     foreach($payrolls as $p) {
+                        $otherIncentives = $p->other_incentives ?? 0;
+                        $grossWithIncentives = ($p->gross_pay ?? 0) + $otherIncentives;
+
                         $bBasic += $p->basic_salary ?? 0;
-                        $bGross += $p->gross_pay ?? 0;
+                        $bGross += $grossWithIncentives;
                         $bCa += $p->cash_advance ?? 0;
                         $bShort += $p->shortages ?? 0;
 
                         $sL = $isSecond ? ($p->contribution->sss_salary_loan ?? 0) : 0;
                         $sC = $isSecond ? ($p->contribution->sss_calamity_loan ?? 0) : 0;
                         $pL = $isSecond ? ($p->contribution->pagibig_salary_loan ?? 0) : 0;
-                        $bSssL += $sL; $bSssC += $sC; $bPiL += $pL;
+                        $bSssL += $sL;
+                        $bSssC += $sC;
+                        $bPiL += $pL;
 
                         $sss_ee = $isFirst ? ($p->contribution->sss_ee ?? 0) : 0;
                         $sss_er = $isFirst ? ($p->contribution->sss_er ?? 0) : 0;
@@ -83,16 +109,25 @@
                         $pi_er = $isFirst ? ($p->contribution->pagibig_er ?? 0) : 0;
                         $bPi += ($pi_ee + $pi_er);
 
-                        $deductions = $sss_ee + $ph_ee + $pi_ee + $pr + $sL + $sC + $pL 
-                                    + ($p->cash_advance ?? 0) + ($p->shortages ?? 0) + ($p->other_deduction ?? 0);
-                        $bNet += (($p->gross_pay ?? 0) - $deductions);
+                        $deductions = $sss_ee + $ph_ee + $pi_ee + $pr + $sL + $sC + $pL
+                                    + ($p->cash_advance ?? 0)
+                                    + ($p->shortages ?? 0)
+                                    + ($p->other_deduction ?? 0);
+
+                        $bNet += ($grossWithIncentives - $deductions);
                     }
 
-                    $overallTotal['basic'] += $bBasic; $overallTotal['gross'] += $bGross;
-                    $overallTotal['sss_loan'] += $bSssL; $overallTotal['sss_cal'] += $bSssC; $overallTotal['pi_loan'] += $bPiL;
-                    $overallTotal['ca'] += $bCa; $overallTotal['short'] += $bShort;
-                    $overallTotal['sss'] += $bSss; $overallTotal['prem'] += $bPrem;
-                    $overallTotal['ph'] += $bPh; $overallTotal['pi'] += $bPi;
+                    $overallTotal['basic'] += $bBasic;
+                    $overallTotal['gross'] += $bGross;
+                    $overallTotal['sss_loan'] += $bSssL;
+                    $overallTotal['sss_cal'] += $bSssC;
+                    $overallTotal['pi_loan'] += $bPiL;
+                    $overallTotal['ca'] += $bCa;
+                    $overallTotal['short'] += $bShort;
+                    $overallTotal['sss'] += $bSss;
+                    $overallTotal['prem'] += $bPrem;
+                    $overallTotal['ph'] += $bPh;
+                    $overallTotal['pi'] += $bPi;
                     $overallTotal['net'] += $bNet;
                 @endphp
                 <tr>
@@ -140,21 +175,65 @@
     Branch: {{ $branchName ?? 'No Branch' }}
 
     @php
-    $columns = [
-        'days_worked', 'days_absent', 'undertime_hours', 'daily_rate', 'basic_salary',
-        'overtime_salary', 'gross_pay', 'cash_advance', 'shortages', 'other_deduction',
-        'sss_er', 'sss_ee', 'premium_voluntary_ss_contribution', 'sss_salary_loan', 'sss_calamity_loan', 
-        'philhealth_er', 'philhealth_ee', 'pagibig_er', 'pagibig_ee', 'pagibig_salary_loan', 
-        'total_deductions', 'net_pay'
-    ];
-    $admin = array_fill_keys($columns, 0);
-    $field = array_fill_keys($columns, 0);
+        $columns = [
+            'days_worked',
+            'days_absent',
+            'undertime_hours',
+            'daily_rate',
+            'basic_salary',
+            'overtime_salary',
+            'gross_pay',
+            'other_incentives',
+            'cash_advance',
+            'shortages',
+            'other_deduction',
+            'sss_er',
+            'sss_ee',
+            'premium_voluntary_ss_contribution',
+            'sss_salary_loan',
+            'sss_calamity_loan',
+            'philhealth_er',
+            'philhealth_ee',
+            'pagibig_er',
+            'pagibig_ee',
+            'pagibig_salary_loan',
+            'total_deductions',
+            'net_pay'
+        ];
+
+        $admin = array_fill_keys($columns, 0);
+        $field = array_fill_keys($columns, 0);
     @endphp
 
     <table>
         <tr>
             <th class="text-left">Employee Name</th>
-            @foreach(['Days Worked', 'Days Absent', 'UT Hours', 'Daily Rate', 'Basic Salary + Holiday Salary', 'Overtime Pay', 'Gross Pay', 'Cash Adv', 'Shortages', 'Other Ded', 'SSS ER', 'SSS EE', 'Prem SS', 'SSS Loan', 'SSS Cal', 'PH ER', 'PH EE', 'PAG ER', 'PAG EE', 'PAG Loan', 'Total Deduction', 'Net Pay', 'Signature'] as $header)
+            @foreach([
+                'Days Worked',
+                'Days Absent',
+                'UT Hours',
+                'Daily Rate',
+                'Basic Salary + Holiday Salary',
+                'Overtime Pay',
+                'Gross Pay',
+                'Other Incentives',
+                'Cash Adv',
+                'Shortages',
+                'Other Ded',
+                'SSS ER',
+                'SSS EE',
+                'Prem SS',
+                'SSS Loan',
+                'SSS Cal',
+                'PH ER',
+                'PH EE',
+                'PAG ER',
+                'PAG EE',
+                'PAG Loan',
+                'Total Deduction',
+                'Net Pay',
+                'Signature'
+            ] as $header)
                 <th>{{ $header }}</th>
             @endforeach
         </tr>
@@ -183,18 +262,53 @@
             $cash = $payroll->cash_advance ?? 0;
             $short = $payroll->shortages ?? 0;
             $other = $payroll->other_deduction ?? 0;
+            $otherIncentives = $payroll->other_incentives ?? 0;
 
-            $totalOT = ($payroll->overtime_salary ?? 0) + ($payroll->sunday_ot_salary ?? 0) + ($payroll->rest_day_ot_salary ?? 0) + ($payroll->night_diff_salary ?? 0) + ($payroll->night_diff_ot_salary ?? 0);
-            // $holiday = $payroll->holiday_pay ?? 0;
+            $totalOT = ($payroll->overtime_salary ?? 0)
+                + ($payroll->sunday_ot_salary ?? 0)
+                + ($payroll->rest_day_ot_salary ?? 0)
+                + ($payroll->night_diff_salary ?? 0)
+                + ($payroll->night_diff_ot_salary ?? 0);
+
+            $grossWithIncentives = ($payroll->gross_pay ?? 0) + $otherIncentives;
+
             $totDed = $sss_ee + $ph_ee + $pi_ee + $prem + $sss_loan + $sss_cal + $pi_loan + $cash + $short + $other;
-            $nP = ($payroll->gross_pay ?? 0) - $totDed;
+            $nP = $grossWithIncentives - $totDed;
 
             foreach($columns as $col) {
-                if($col == 'overtime_salary') ${$cat}[$col] += $totalOT;
-                // elseif($col == 'holiday_pay') ${$cat}[$col] += $holiday;
-                elseif($col == 'total_deductions') ${$cat}[$col] += $totDed;
-                elseif($col == 'net_pay') ${$cat}[$col] += $nP;
-                else ${$cat}[$col] += $payroll->$col ?? 0;
+                if ($col == 'overtime_salary') {
+                    ${$cat}[$col] += $totalOT;
+                } elseif ($col == 'gross_pay') {
+                    ${$cat}[$col] += $grossWithIncentives;
+                } elseif ($col == 'other_incentives') {
+                    ${$cat}[$col] += $otherIncentives;
+                } elseif ($col == 'sss_er') {
+                    ${$cat}[$col] += $sss_er;
+                } elseif ($col == 'sss_ee') {
+                    ${$cat}[$col] += $sss_ee;
+                } elseif ($col == 'premium_voluntary_ss_contribution') {
+                    ${$cat}[$col] += $prem;
+                } elseif ($col == 'sss_salary_loan') {
+                    ${$cat}[$col] += $sss_loan;
+                } elseif ($col == 'sss_calamity_loan') {
+                    ${$cat}[$col] += $sss_cal;
+                } elseif ($col == 'philhealth_er') {
+                    ${$cat}[$col] += $ph_er;
+                } elseif ($col == 'philhealth_ee') {
+                    ${$cat}[$col] += $ph_ee;
+                } elseif ($col == 'pagibig_er') {
+                    ${$cat}[$col] += $pi_er;
+                } elseif ($col == 'pagibig_ee') {
+                    ${$cat}[$col] += $pi_ee;
+                } elseif ($col == 'pagibig_salary_loan') {
+                    ${$cat}[$col] += $pi_loan;
+                } elseif ($col == 'total_deductions') {
+                    ${$cat}[$col] += $totDed;
+                } elseif ($col == 'net_pay') {
+                    ${$cat}[$col] += $nP;
+                } else {
+                    ${$cat}[$col] += $payroll->$col ?? 0;
+                }
             }
         @endphp
 
@@ -206,8 +320,8 @@
             <td>{{ number_format($payroll->daily_rate ?? 0, 2) }}</td>
             <td>{{ number_format($payroll->basic_salary ?? 0, 2) }}</td>
             <td>{{ number_format($totalOT, 2) }}</td>
-            {{-- <td>{{ number_format($holiday, 2) }}</td> --}}
-            <td>{{ number_format($payroll->gross_pay ?? 0, 2) }}</td>
+            <td>{{ number_format($grossWithIncentives, 2) }}</td>
+            <td>{{ number_format($otherIncentives, 2) }}</td>
             <td>{{ number_format($cash, 2) }}</td>
             <td>{{ number_format($short, 2) }}</td>
             <td>{{ number_format($other, 2) }}</td>
@@ -227,7 +341,6 @@
         </tr>
         @endforeach
 
-        {{-- Totals Rows --}}
         <tr class="bold">
             <td class="text-left">TOTAL ADMIN</td>
             @foreach($columns as $col)
@@ -235,6 +348,7 @@
             @endforeach
             <td></td>
         </tr>
+
         <tr class="bold">
             <td class="text-left">TOTAL FIELD</td>
             @foreach($columns as $col)
@@ -242,6 +356,7 @@
             @endforeach
             <td></td>
         </tr>
+
         <tr class="bold">
             <td class="text-left">TOTAL BRANCH</td>
             @foreach($columns as $col)
@@ -254,9 +369,18 @@
     <br><br>
     <table class="no-border">
         <tr>
-            <td class="text-left"><div class="signature-line"></div>Prepared by:<br>Name and Signature</td>
+            <td class="text-left">
+                <div class="signature-line"></div>
+                Prepared by:<br>
+                Name and Signature
+            </td>
             <td></td>
-            <td class="text-left"><div class="signature-line"></div>Approved by:<br><strong>EDUARDO A. OCAMPO</strong><br>Authorized Signatory</td>
+            <td class="text-left">
+                <div class="signature-line"></div>
+                Approved by:<br>
+                <strong>EDUARDO A. OCAMPO</strong><br>
+                Authorized Signatory
+            </td>
         </tr>
     </table>
 </div>

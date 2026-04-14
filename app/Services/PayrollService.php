@@ -205,6 +205,7 @@ class PayrollService
                     $totalDeductions += (float) ($employee->contribution->sss_ee ?? 0);
                     $totalDeductions += (float) ($employee->contribution->philhealth_ee ?? 0);
                     $totalDeductions += (float) ($employee->contribution->pagibig_ee ?? 0);
+                    $totalDeductions += (float) ($employee->contribution->premium_voluntary_ss_contribution ?? 0);
                 } else {
                     $totalDeductions += (float) ($employee->contribution->sss_salary_loan ?? 0);
                     $totalDeductions += (float) ($employee->contribution->pagibig_salary_loan ?? 0);
