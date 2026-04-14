@@ -71,16 +71,18 @@ class PayrollService
                     }
 
                     $daysWorked += 1;
-                }
-
-                // --- 3. SPECIAL HOLIDAY (FIXED ✅) ---
-                elseif ($status === 'special_holiday' && $totalHrs > 0) {
-
-                    // Base day already counted → add ONLY 30% premium
-                    $totalRegularSalary += ($dailyRate * 0.3);
+                } 
+                
+                 // --- 2. SPECIAL HOLIDAY ---
+                elseif (
+                    (str_contains($remarks, 'special holiday') || $status === 'special_holiday')
+                    && $totalHrs > 0
+                ) {
+                    // Worked special holiday = 130%
+                    $totalRegularSalary += ($dailyRate * 1.3);
 
                     if ($otHrs > 0) {
-                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.25));
+                        $totalOvertimeSalary += ($otHrs * ($hourlyRate * 1.69));
                     }
 
                     $daysWorked += 1;
