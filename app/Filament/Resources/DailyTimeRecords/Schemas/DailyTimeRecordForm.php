@@ -181,7 +181,7 @@ class DailyTimeRecordForm
                     $set('remarks', 'Absent With Pay');
                     break;
 
-                case 'legal_holiday':
+             case 'legal_holiday':
                     if ($workedHours >= 8) {
                         $regular = 8;
                         $ot = round($workedHours - 8, 2);
@@ -191,7 +191,9 @@ class DailyTimeRecordForm
                         $undertime = round(8 - $workedHours, 2);
                         $set('remarks', 'Legal Holiday (Undertime)');
                     } else {
-                        $regular = 8;
+                        $regular = 0; // important
+                        $ot = 0;
+                        $undertime = 0;
                         $set('remarks', 'Legal Holiday (No Work)');
                     }
                     break;
