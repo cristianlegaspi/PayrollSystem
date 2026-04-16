@@ -12,7 +12,7 @@ class UserPolicy
      */
     public function viewAny(User $user): bool
     {
-       return in_array($user->role->role_name, ['Super Admin']);
+       return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     //    return in_array($user->role->role_name, ['Staff']);
     }
 
@@ -21,7 +21,7 @@ class UserPolicy
      */
     public function view(User $user, User $model): bool
     {
-      return in_array($user->role->role_name, ['Super Admin']);
+      return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 
     /**
@@ -29,7 +29,7 @@ class UserPolicy
      */
     public function create(User $user): bool
     {
-      return in_array($user->role->role_name, ['Super Admin']);
+      return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 
     /**
@@ -37,7 +37,7 @@ class UserPolicy
      */
     public function update(User $user, User $model): bool
     {
-        return in_array($user->role->role_name, ['Super Admin']);
+        return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 
     /**
@@ -45,7 +45,7 @@ class UserPolicy
      */
     public function delete(User $user, User $model): bool
     {
-         return in_array($user->role->role_name, ['Super Admin']);
+         return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 
     /**
@@ -53,7 +53,7 @@ class UserPolicy
      */
     public function restore(User $user, User $model): bool
     {
-         return in_array($user->role->role_name, ['Super Admin']);
+         return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 
     /**
@@ -61,6 +61,6 @@ class UserPolicy
      */
     public function forceDelete(User $user, User $model): bool
     {
-        return in_array($user->role->role_name, ['Super Admin']);
+        return in_array($user->role->role_name, ['Super Admin', 'Owner']);
     }
 }
