@@ -9,6 +9,8 @@ use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\DatePicker;
 use App\Models\Employee;
+use Filament\Forms\Components\FileUpload;
+use Filament\Notifications\Notification;
 
 class ListDailyTimeRecords extends ListRecords
 {
@@ -106,6 +108,44 @@ class ListDailyTimeRecords extends ListRecords
                     ]));
                 })
                 ->openUrlInNewTab(),
+
+            Action::make('Import Excel')
+                ->label('Import Excel')
+                ->color('warning')
+                ->icon('heroicon-o-arrow-up-tray')
+                ->form([
+                    FileUpload::make('file')
+                        ->label('DTR Excel File')
+                        ->acceptedFileTypes([
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'application/vnd.ms-excel',
+                            'text/csv',
+                        ])
+                        ->disk('local')
+                        ->directory('temp-imports')
+                        ->required(),
+                ])
+                ->action(function (array $data) {
+                    $path = storage_path('app/private/' . $data['file']);
+
+                    if (!file_exists($path)) {
+                        $path = storage_path('app/' . $data['file']);
+                    }
+
+                    \Maatwebsite\Excel\Facades\Excel::import(
+                        new \App\Imports\DTRImport(auth()->user()),
+                        $path
+                    );
+
+                    Notification::make()
+                        ->title('DTR import completed successfully.')
+                        ->success()
+                        ->send();
+                }),
+
+
+
+
 
             // ✅ CREATE BUTTON
             CreateAction::make()

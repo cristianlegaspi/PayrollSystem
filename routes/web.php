@@ -11,6 +11,9 @@ use App\Models\Employee;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DTRExport;
+use App\Imports\DTRImport;
+
+
 
 // Route::get('/', function () {
 //     return view('welcome');
@@ -105,3 +108,13 @@ Route::get('/dtr/export/excel', function (Request $request) {
         "DTR_Summary_{$from}_to_{$to}.xlsx"
     );
 })->name('dtr.export.excel')->middleware(['auth']);
+
+Route::post('/dtr/import/excel', function (Request $request) {
+    $request->validate([
+        'file' => ['required', 'file', 'mimes:xlsx,xls,csv'],
+    ]);
+
+    Excel::import(new DTRImport(auth()->user()), $request->file('file'));
+
+    return back()->with('success', 'DTR Excel file imported successfully.');
+})->name('dtr.import.excel')->middleware(['auth']);
