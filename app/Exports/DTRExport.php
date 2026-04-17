@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\DailyTimeRecord;
+use Carbon\Carbon;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
@@ -28,6 +29,7 @@ class DTRExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
         $query = DailyTimeRecord::with(['employee.branch', 'employee.position']);
 
         $roleName = $this->user?->role?->role_name;
+
         if (!in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
             $query->whereHas('employee', function ($q) {
                 $q->where('branch_id', $this->user->branch_id);
@@ -57,13 +59,19 @@ class DTRExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
             'Branch',
             'Position',
             'Work Date',
-            'Time In',
-            'Break Out',
-            'Break In',
-            'Time Out',
-            'Late Minutes',
-            'Undertime Minutes',
+            'Shift 1 Time In',
+            'Shift 1 Time Out',
+            'Shift 2 Time In',
+            'Shift 2 Time Out',
+            'Shift 3 Time In',
+            'Shift 3 Time Out',
             'Overtime Hours',
+            'Undertime Hours',
+            'Total Hours',
+            'Night Diff Hours',
+            'Night Diff OT Hours',
+            'Sunday OT Hours',
+            'Rest Day OT Hours',
             'Status',
             'Remarks',
         ];
@@ -73,19 +81,53 @@ class DTRExport implements FromCollection, WithHeadings, WithMapping, ShouldAuto
     {
         return [
             $row->employee_id,
-            $row->employee?->full_name,
-            $row->employee?->branch?->branch_name,
-            $row->employee?->position?->name,
-            $row->work_date,
-            $row->time_in,
-            $row->break_out,
-            $row->break_in,
-            $row->time_out,
-            $row->late_minutes ?? 0,
-            $row->undertime_minutes ?? 0,
+            $row->employee?->full_name ?? '',
+            $row->employee?->branch?->branch_name ?? '',
+            $row->employee?->position?->name ?? '',
+            $this->formatDate($row->work_date),
+
+            $this->formatTime($row->shift1_time_in),
+            $this->formatTime($row->shift1_time_out),
+            $this->formatTime($row->shift2_time_in),
+            $this->formatTime($row->shift2_time_out),
+            $this->formatTime($row->shift3_time_in),
+            $this->formatTime($row->shift3_time_out),
+
             $row->overtime_hours ?? 0,
-            $row->status,
-            $row->remarks,
+            $row->undertime_hours ?? 0,
+            $row->total_hours ?? 0,
+            $row->night_diff_hours ?? 0,
+            $row->night_diff_ot_hours ?? 0,
+            $row->sunday_ot_hours ?? 0,
+            $row->rest_day_ot_hours ?? 0,
+            $row->status ?? '',
+            $row->remarks ?? '',
         ];
+    }
+
+    private function formatTime($time)
+    {
+        if (!$time) {
+            return '';
+        }
+
+        try {
+            return Carbon::parse($time)->format('h:i A');
+        } catch (\Exception $e) {
+            return $time;
+        }
+    }
+
+    private function formatDate($date)
+    {
+        if (!$date) {
+            return '';
+        }
+
+        try {
+            return Carbon::parse($date)->format('Y-m-d');
+        } catch (\Exception $e) {
+            return $date;
+        }
     }
 }
