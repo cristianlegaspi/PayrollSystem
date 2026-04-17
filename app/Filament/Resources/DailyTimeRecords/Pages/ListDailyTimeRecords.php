@@ -19,15 +19,13 @@ class ListDailyTimeRecords extends ListRecords
 
     protected function getHeaderActions(): array
     {
-        // Capture the logged-in user outside closures to avoid Filament context issues
         $user = auth()->user();
 
         return [
-            // Button to create new DTR
 
-            // Export PDF button with Employee & Date filters
+            // ✅ EXPORT PDF
             Action::make('Export PDF')
-                ->label('Generate DTR report')
+                ->label('Generate DTR PDF')
                 ->color('success')
                 ->icon('heroicon-o-printer')
                 ->form([
@@ -39,19 +37,21 @@ class ListDailyTimeRecords extends ListRecords
                             titleAttribute: 'full_name',
                             modifyQueryUsing: function ($query) use ($user) {
                                 $roleName = $user->role?->role_name;
-                                // If not Admin/Owner, restrict to their own branch
+
                                 if (!in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
                                     return $query->where('branch_id', $user->branch_id);
                                 }
+
                                 return $query;
                             }
                         )
                         ->searchable()
-                        ->preload(), // Removed 'required()' to allow bulk generation
+                        ->preload(),
 
                     DatePicker::make('from')
                         ->label('Work Date From')
-                        ->required(), // Dates are usually required for a clean report
+                        ->required(),
+
                     DatePicker::make('to')
                         ->label('Work Date To')
                         ->required(),
@@ -65,6 +65,49 @@ class ListDailyTimeRecords extends ListRecords
                 })
                 ->openUrlInNewTab(),
 
+            // ✅ EXPORT EXCEL
+            Action::make('Export Excel')
+                ->label('Export to Excel')
+                ->color('primary')
+                ->icon('heroicon-o-arrow-down-tray')
+                ->form([
+                    Select::make('employee_id')
+                        ->label('Employee (Leave blank for ALL)')
+                        ->placeholder('All Employees')
+                        ->relationship(
+                            name: 'employee',
+                            titleAttribute: 'full_name',
+                            modifyQueryUsing: function ($query) use ($user) {
+                                $roleName = $user->role?->role_name;
+
+                                if (!in_array($roleName, ['Admin', 'Super Admin', 'Owner'])) {
+                                    return $query->where('branch_id', $user->branch_id);
+                                }
+
+                                return $query;
+                            }
+                        )
+                        ->searchable()
+                        ->preload(),
+
+                    DatePicker::make('from')
+                        ->label('Work Date From')
+                        ->required(),
+
+                    DatePicker::make('to')
+                        ->label('Work Date To')
+                        ->required(),
+                ])
+                ->action(function ($data) {
+                    return redirect()->to(route('dtr.export.excel', [
+                        'employee_id' => $data['employee_id'] ?? null,
+                        'from' => $data['from'],
+                        'to' => $data['to'],
+                    ]));
+                })
+                ->openUrlInNewTab(),
+
+            // ✅ CREATE BUTTON
             CreateAction::make()
                 ->label('Create New DTR'),
 
