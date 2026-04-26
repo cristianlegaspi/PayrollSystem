@@ -95,17 +95,20 @@ class EmployeeOverview extends StatsOverviewWidget
         $stats[] = Stat::make('Total Basic Salary', '₱' . number_format($totals['total_basic'], 2))
             ->description('Total base pay')
             ->descriptionIcon('heroicon-m-briefcase')
-            ->color('info');
+            ->color('info')
+             ->visible(fn () => in_array(optional(auth()->user()->role)->role_name, ['Admin', 'Super Admin', 'Owner']));
 
         $stats[] = Stat::make('Total Overtime Pay', '₱' . number_format($totalOvertimeCombined, 2))
             ->description('Includes OT, ND, ND OT, Sunday OT')
             ->descriptionIcon('heroicon-m-clock')
-            ->color('info');
+            ->color('info')
+             ->visible(fn () => in_array(optional(auth()->user()->role)->role_name, ['Admin', 'Super Admin', 'Owner']));
 
         $stats[] = Stat::make('Total Gross Pay', '₱' . number_format($totals['total_gross'], 2))
             ->description('Earnings before deductions')
             ->descriptionIcon('heroicon-m-plus-circle')
-            ->color('info');
+            ->color('info')
+             ->visible(fn () => in_array(optional(auth()->user()->role)->role_name, ['Admin', 'Super Admin', 'Owner']));
 
         $stats[] = Stat::make('Total Cash Advance', '₱' . number_format($totals['total_ca'], 2))
             ->description('Outstanding cash advance')
