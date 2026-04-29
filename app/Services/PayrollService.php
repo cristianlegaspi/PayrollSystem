@@ -209,6 +209,7 @@ class PayrollService
                 } else {
                     $totalDeductions += (float) ($employee->contribution->sss_salary_loan ?? 0);
                     $totalDeductions += (float) ($employee->contribution->pagibig_salary_loan ?? 0);
+                    $totalDeductions += (float) ($employee->contribution->sss_calamity_loan ?? 0);
                 }
             }
 
