@@ -14,110 +14,137 @@ class PayrollsTable
     public static function configure(Table $table): Table
     {
         return $table
+            ->modifyQueryUsing(function ($query) {
+                $query->whereHas('payrollPeriod', function ($q) {
+                    $q->where('status', 'Finalized')
+                      ->where('remarks', 'Pending');
+                });
+            })
             ->columns([
                 TextColumn::make('employee.full_name')
-                    ->numeric()
                     ->searchable()
                     ->sortable(),
+
                 TextColumn::make('payrollPeriod.description')
-                    ->numeric()
+                    ->label('Payroll Period')
                     ->searchable()
                     ->sortable(),
+
                 TextColumn::make('days_worked')
                     ->numeric()
                     ->sortable()
-                     ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('days_absent')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('undertime_hours')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('overtime_hours')
                     ->numeric()
                     ->sortable()
-                     ->toggleable(isToggledHiddenByDefault: true),
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('night_diff_hours')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('night_diff_ot_hours')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('daily_rate')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('basic_salary')
                     ->numeric()
                     ->money('PHP')
                     ->sortable(),
+
                 TextColumn::make('overtime_salary')
-                    ->numeric()
                     ->label('Regular Overtime Salary')
+                    ->numeric()
                     ->money('PHP')
                     ->sortable(),
+
                 TextColumn::make('night_diff_salary')
                     ->numeric()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('night_diff_ot_salary')
                     ->numeric()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
-                  TextColumn::make('undertime_deduction')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('undertime_deduction')
                     ->numeric()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('gross_pay')
                     ->numeric()
                     ->money('PHP')
                     ->sortable(),
+
                 TextColumn::make('total_deductions')
-                    ->numeric()
                     ->label('Contribution')
+                    ->numeric()
                     ->color('danger')
                     ->money('PHP')
                     ->sortable(),
+
                 TextColumn::make('cash_advance')
-                ->money('PHP')
                     ->numeric()
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
-                      TextColumn::make('shortages')
-                    ->numeric()
-                     ->badge()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
-                  TextColumn::make('other_deduction')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('shortages')
                     ->numeric()
-                     ->badge()
+                    ->badge()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
-                      TextColumn::make('other_incentives')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('other_deduction')
                     ->numeric()
-                     ->badge()
+                    ->badge()
                     ->money('PHP')
-                     ->toggleable(isToggledHiddenByDefault: true)
-                    ->sortable(),
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
+                TextColumn::make('other_incentives')
+                    ->numeric()
+                    ->badge()
+                    ->money('PHP')
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('net_pay')
                     ->numeric()
-                     ->badge()
+                    ->badge()
                     ->color('success')
                     ->money('PHP')
                     ->sortable(),
+
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+
                 TextColumn::make('updated_at')
                     ->dateTime()
                     ->sortable()
@@ -128,13 +155,16 @@ class PayrollsTable
             ])
             ->recordActions([
                 ViewAction::make(),
-                EditAction::make(),
+
+                // Prevent editing finalized payroll
+                EditAction::make()
+                    ->visible(fn ($record) => $record->payrollPeriod?->status !== 'Finalized'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
                     DeleteBulkAction::make(),
                 ])
-                ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
+                    ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
             ]);
     }
 }
