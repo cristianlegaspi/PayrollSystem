@@ -58,28 +58,28 @@ class PayrollsTable
             ])
 
             ->filters([
-                SelectFilter::make('payroll_period_id')
-                    ->label('Approved Payroll Period')
-                    ->options(function () {
-                        return PayrollPeriod::query()
-                            ->where('status', 'Finalized')
-                            ->where('remarks', 'Approved')
-                            ->pluck('description', 'id')
-                            ->toArray();
-                    })
-                    ->query(function ($query, array $data) {
+                // SelectFilter::make('payroll_period_id')
+                //     ->label('Approved Payroll Period')
+                //     ->options(function () {
+                //         return PayrollPeriod::query()
+                //             ->where('status', 'Finalized')
+                //             ->where('remarks', 'Approved')
+                //             ->pluck('description', 'id')
+                //             ->toArray();
+                //     })
+                //     ->query(function ($query, array $data) {
 
-                        if (! filled($data['value'])) {
-                            // If no filter selected → revert to Pending only
-                            return $query->whereHas('payrollPeriod', function ($q) {
-                                $q->where('status', 'Finalized')
-                                  ->where('remarks', 'Pending');
-                            });
-                        }
+                //         if (! filled($data['value'])) {
+                //             // If no filter selected → revert to Pending only
+                //             return $query->whereHas('payrollPeriod', function ($q) {
+                //                 $q->where('status', 'Finalized')
+                //                   ->where('remarks', 'Pending');
+                //             });
+                //         }
 
-                        // If selected → show Approved
-                        return $query->where('payroll_period_id', $data['value']);
-                    }),
+                //         // If selected → show Approved
+                //         return $query->where('payroll_period_id', $data['value']);
+                //     }),
             ])
 
             ->recordActions([
