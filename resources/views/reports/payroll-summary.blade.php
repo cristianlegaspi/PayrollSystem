@@ -240,8 +240,13 @@
 
         @foreach($payrolls as $payroll)
         @php
-            $type = $payroll->employee->employee_type ?? 'Field';
-            $cat = strtolower($type) == 'admin' ? 'admin' : 'field';
+           $type = data_get($payroll, 'employee.employmentTypes.name')
+            ?? data_get($payroll, 'employee.employmentType.name')
+            ?? data_get($payroll, 'employee.employee_type')
+            ?? data_get($payroll, 'employee.employment_type')
+            ?? 'Field';
+
+            $cat = strtolower(trim($type)) === 'admin' ? 'admin' : 'field';
 
             $startDay = \Carbon\Carbon::parse($period->start_date)->day;
             $isFirst = $startDay >= 1 && $startDay <= 15;
