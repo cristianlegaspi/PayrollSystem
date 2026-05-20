@@ -119,22 +119,54 @@ Route::post('/dtr/import/excel', function (Request $request) {
     return back()->with('success', 'DTR Excel file imported successfully.');
 })->name('dtr.import.excel')->middleware(['auth']);
 
-Route::get('/payroll/{period}/all-payslips', function (PayrollPeriod $period) {
+Route::get('/payroll/{period}/all-payslips/{branchId?}', function (
+    PayrollPeriod $period,
+    $branchId = null
+) {
 
-    $payrolls = Payroll::with([
+    $query = Payroll::with([
         'employee.branch',
         'employee.position',
         'contribution',
     ])
-    ->where('payroll_period_id', $period->id)
-    ->orderBy('employee_id')
-    ->get();
+    ->where('payroll_period_id', $period->id);
+
+    $branch = null;
+
+    // FILTER BY BRANCH
+    if (!empty($branchId)) {
+
+        $branch = Branch::find($branchId);
+
+        if ($branch) {
+
+            $query->whereHas('employee', function ($q) use ($branchId) {
+
+                $q->where('branch_id', $branchId);
+
+            });
+
+        }
+    }
+
+    $payrolls = $query
+        ->orderBy('employee_id')
+        ->get();
+
+    if ($payrolls->isEmpty()) {
+        return "No payroll records found.";
+    }
 
     $pdf = Pdf::loadView('reports.all-payslips', [
         'payrolls' => $payrolls,
         'period' => $period,
+        'branch' => $branch,
     ])->setPaper('a4');
 
-    return $pdf->stream("All-Payslips.pdf");
+    $filename = $branch
+        ? "Payslips-{$branch->branch_name}-{$period->description}.pdf"
+        : "Payslips-AllBranches-{$period->description}.pdf";
 
-})->name('payroll.all-payslips');
+    return $pdf->stream($filename);
+
+})->name('payroll.all-payslips')->middleware(['auth']);
