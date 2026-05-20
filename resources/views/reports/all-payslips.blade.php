@@ -124,7 +124,7 @@ $legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->emp
         $period->start_date,
         $period->end_date
     ])
-    ->where('remarks', 'Legal Holiday')
+    ->where('status', 'legal_holiday')
     ->count();
 
 $specialHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee_id)
@@ -132,7 +132,7 @@ $specialHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->e
         $period->start_date,
         $period->end_date
     ])
-    ->where('remarks', 'Special Holiday')
+    ->where('status', 'special_holiday')
     ->count();
 
 $data = [
@@ -171,7 +171,7 @@ $data = [
 
     'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
 
-    // FIXED CONTRIBUTIONS
+    // CONTRIBUTIONS
     'sss_ee' => (float) ($contribution->sss_ee ?? 0),
 
     'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
@@ -265,17 +265,12 @@ $final_net_pay =
 
 <div class="header">
     <h1>E.A OCAMPO ENTERPRISES</h1>
-
-    <p>
-        PAYROLL PERIOD:
-        {{ $data['period'] }}
-    </p>
+    <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
 </div>
 
 <table class="no-border">
 
     <tr>
-
         <td>
             <strong>Name:</strong>
             {{ $data['employee_name'] }}
@@ -285,11 +280,9 @@ $final_net_pay =
             <strong>Daily Rate:</strong>
             PHP {{ number_format($data['daily_rate'], 2) }}
         </td>
-
     </tr>
 
     <tr>
-
         <td>
             <strong>Position:</strong>
             {{ $data['position'] }}
@@ -299,7 +292,6 @@ $final_net_pay =
             <strong>Date:</strong>
             {{ $data['date_generated'] }}
         </td>
-
     </tr>
 
 </table>
@@ -307,11 +299,8 @@ $final_net_pay =
 <table class="earnings-table">
 
     <tr class="section">
-
         <td>Description</td>
-
         <td class="right">Amount</td>
-
     </tr>
 
     <tr>
@@ -456,17 +445,12 @@ $final_net_pay =
 </table>
 
 <table>
-
     <tr class="net">
-
         <td>NET PAY</td>
-
         <td class="right">
             PHP {{ number_format($final_net_pay, 2) }}
         </td>
-
     </tr>
-
 </table>
 
 <table class="no-border signature">
