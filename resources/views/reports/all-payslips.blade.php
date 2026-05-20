@@ -123,14 +123,14 @@ $legalHolidays = \App\Models\DailyTimeRecord::query()
     ->where('employee_id', $payroll->employee->id)
     ->whereDate('work_date', '>=', $period->start_date->toDateString())
     ->whereDate('work_date', '<=', $period->end_date->toDateString())
-    ->where('status', 'legal_holiday')
+    ->whereRaw('LOWER(TRIM(status)) LIKE ?', ['%legal_holiday%'])
     ->count();
 
 $specialHolidays = \App\Models\DailyTimeRecord::query()
     ->where('employee_id', $payroll->employee->id)
     ->whereDate('work_date', '>=', $period->start_date->toDateString())
     ->whereDate('work_date', '<=', $period->end_date->toDateString())
-    ->where('status', 'special_holiday')
+    ->whereRaw('LOWER(TRIM(status)) LIKE ?', ['%special_holiday%'])
     ->count();
 
 $data = [
