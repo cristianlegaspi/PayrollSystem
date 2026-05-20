@@ -72,51 +72,54 @@ class ListPayrolls extends ListRecords
                     }
                 }),
 
-           Action::make('generateAllPayslips')
-    ->label('Generate All Payslips')
-    ->icon('heroicon-o-document-text')
-    ->color('success')
+            Action::make('generateAllPayslips')
+                ->label('Generate All Payslips')
+                ->icon('heroicon-o-document-text')
+                ->color('success')
 
-    ->visible(
-        fn() =>
-        Auth::check() &&
-            in_array(optional(Auth::user()->role)->role_name, [
-                'Admin',
-                'Super Admin'
-            ])
-    )
+                ->visible(
+                    fn() =>
+                    Auth::check() &&
+                        in_array(optional(Auth::user()->role)->role_name, [
+                            'Admin',
+                            'Super Admin'
+                        ])
+                )
 
-    ->form([
+                ->form([
 
-        Select::make('branch_id')
-            ->label('Branch')
-            ->options(
-                Branch::pluck('branch_name', 'id')
-            )
-            ->searchable()
-            ->preload()
-            ->placeholder('All Branches'),
+                    Select::make('branch_id')
+                        ->label('Branch')
+                        ->options(
+                            Branch::query()
+                                ->where('branch_name', '!=', 'All Branch')
+                                ->pluck('branch_name', 'id')
+                        )
+                        ->multiple()
+                        ->searchable()
+                        ->preload()
+                        ->required()
+                        ->native(false),
 
-        Select::make('payroll_period_id')
-            ->label('Payroll Period')
-            ->relationship(
-                name: 'payrollPeriod',
-                titleAttribute: 'description'
-            )
-            ->searchable()
-            ->preload()
-            ->required(),
+                    Select::make('payroll_period_id')
+                        ->label('Payroll Period')
+                        ->relationship(
+                            name: 'payrollPeriod',
+                            titleAttribute: 'description'
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->required(),
 
-    ])
+                ])
 
-    ->action(function (array $data) {
+                ->action(function (array $data) {
 
-        return redirect()->route('payroll.all-payslips', [
-            'period' => $data['payroll_period_id'],
-            'branchId' => $data['branch_id'], // FIXED
-        ]);
-
-    }),
+                    return redirect()->route('payroll.all-payslips', [
+                        'period' => $data['payroll_period_id'],
+                        'branchIds' => implode(',', $data['branch_id']),
+                    ]);
+                }),
         ];
     }
 
