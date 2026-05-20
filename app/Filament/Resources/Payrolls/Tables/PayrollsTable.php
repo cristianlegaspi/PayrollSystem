@@ -17,15 +17,15 @@ class PayrollsTable
     {
         return $table
 
-            ->modifyQueryUsing(function ($query) {
-                // Default: show Pending only
-                if (! request()->has('tableFilters')) {
-                    $query->whereHas('payrollPeriod', function ($q) {
-                        $q->where('status', 'Finalized')
-                          ->where('remarks', 'Pending');
-                    });
-                }
-            })
+            // ->modifyQueryUsing(function ($query) {
+            //     // Default: show Pending only
+            //     if (! request()->has('tableFilters')) {
+            //         $query->whereHas('payrollPeriod', function ($q) {
+            //             $q->where('status', 'Finalized')
+            //               ->where('remarks', 'Pending');
+            //         });
+            //     }
+            // })
 
             ->columns([
                 TextColumn::make('employee.full_name')

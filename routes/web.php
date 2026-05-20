@@ -118,3 +118,23 @@ Route::post('/dtr/import/excel', function (Request $request) {
 
     return back()->with('success', 'DTR Excel file imported successfully.');
 })->name('dtr.import.excel')->middleware(['auth']);
+
+Route::get('/payroll/{period}/all-payslips', function (PayrollPeriod $period) {
+
+    $payrolls = Payroll::with([
+        'employee.branch',
+        'employee.position',
+        'contribution',
+    ])
+    ->where('payroll_period_id', $period->id)
+    ->orderBy('employee_id')
+    ->get();
+
+    $pdf = Pdf::loadView('reports.all-payslips', [
+        'payrolls' => $payrolls,
+        'period' => $period,
+    ])->setPaper('a4');
+
+    return $pdf->stream("All-Payslips.pdf");
+
+})->name('payroll.all-payslips');

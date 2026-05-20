@@ -21,7 +21,7 @@ class ListPayrolls extends ListRecords
     protected function getHeaderActions(): array
     {
         return [
-      // ================= GENERATE PAYROLL =================
+            // ================= GENERATE PAYROLL =================
             Action::make('generatePayroll')
                 ->label('Generate Payroll')
                 ->icon('heroicon-o-currency-dollar')
@@ -29,9 +29,10 @@ class ListPayrolls extends ListRecords
 
 
                 // ✅ ROLE-BASED VISIBILITY
-                ->visible(fn () => 
+                ->visible(
+                    fn() =>
                     Auth::check() &&
-                    in_array(optional(Auth::user()->role)->role_name, ['Admin', 'Super Admin'])
+                        in_array(optional(Auth::user()->role)->role_name, ['Admin', 'Super Admin'])
                 )
 
                 ->form([
@@ -40,7 +41,7 @@ class ListPayrolls extends ListRecords
                         ->relationship(
                             name: 'payrollPeriod',
                             titleAttribute: 'description',
-                            modifyQueryUsing: fn ($query) => $query->where('status', 'open')
+                            modifyQueryUsing: fn($query) => $query->where('status', 'open')
                         )
                         ->searchable()
                         ->preload()
@@ -62,7 +63,6 @@ class ListPayrolls extends ListRecords
                             ->title('Payroll generated successfully!')
                             ->success()
                             ->send();
-
                     } catch (\Throwable $e) {
 
                         Notification::make()
@@ -72,10 +72,41 @@ class ListPayrolls extends ListRecords
                     }
                 }),
 
+            Action::make('generateAllPayslips')
+                ->label('Generate All Payslips')
+                ->icon('heroicon-o-document-text')
+                ->color('success')
+
+                ->visible(
+                    fn() =>
+                    Auth::check() &&
+                        in_array(optional(Auth::user()->role)->role_name, ['Admin', 'Super Admin'])
+                )
+
+                ->form([
+                    Select::make('payroll_period_id')
+                        ->label('Payroll Period')
+                        ->relationship(
+                            name: 'payrollPeriod',
+                            titleAttribute: 'description',
+                        )
+                        ->searchable()
+                        ->preload()
+                        ->required(),
+                ])
+
+                ->action(function (array $data) {
+
+                    $period = PayrollPeriod::findOrFail($data['payroll_period_id']);
+
+                    return redirect()->route('payroll.all-payslips', [
+                        'period' => $period->id,
+                    ]);
+                }),
+
         ];
-        
     }
 
-     protected ?string $heading = 'Payroll Management';
+    protected ?string $heading = 'Payroll Management';
     protected ?string $subheading = 'Overview of All Payroll';
 }
