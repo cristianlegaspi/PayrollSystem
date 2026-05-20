@@ -175,8 +175,10 @@
     Branch: {{ $branchName ?? 'No Branch' }}
 
     @php
+        // Added 'legal_holiday_days' to the tracked structures
         $columns = [
             'days_worked',
+            'legal_holiday_days',
             'days_absent',
             'undertime_hours',
             'daily_rate',
@@ -210,6 +212,7 @@
             <th class="text-left">Employee Name</th>
             @foreach([
                 'Days Worked',
+                'Legal Holiday',
                 'Days Absent',
                 'UT Hours',
                 'Daily Rate',
@@ -281,34 +284,37 @@
             $nP = $grossWithIncentives - $totDed;
 
             /**
-             * REVISED ATTENDANCE AUDIT LOGIC
-             * Calibrates both Days Worked and Days Absent dynamically using basic salary 
-             * to filter out holiday processing anomalies.
+             * SEPARATED DAY MATHEMATICS LOGIC
+             * Safely breaks down total paid units into base-level parts.
              */
             $dailyRate = $payroll->daily_rate ?? 0;
             $basicSalary = $payroll->basic_salary ?? 0;
-            $rawDaysWorked = $payroll->days_worked ?? 0;
             $rawDaysAbsent = $payroll->days_absent ?? 0;
 
+            $calculatedDaysWorked = 0;
+            $legalHolidayDays = 0;
+            $calculatedDaysAbsent = $rawDaysAbsent;
+
             if ($dailyRate > 0) {
-                $derivedPaidDays = round($basicSalary / $dailyRate, 2);
+                $totalPaidDays = (int)round($basicSalary / $dailyRate);
                 
-                // If it's a 15-day period block and metrics are out of balance
-                if (($rawDaysWorked + $rawDaysAbsent) != 15 || $rawDaysWorked != $derivedPaidDays) {
-                    $calculatedDaysWorked = (int)$derivedPaidDays;
-                    $calculatedDaysAbsent = 15 - $calculatedDaysWorked;
+                // If there is an active pay record, extract 1 legal holiday unit if out of absolute sync
+                if ($totalPaidDays < 15) {
+                    $legalHolidayDays = 1; 
+                    $calculatedDaysWorked = $totalPaidDays - $legalHolidayDays;
+                    $calculatedDaysAbsent = 15 - ($calculatedDaysWorked + $legalHolidayDays);
                 } else {
-                    $calculatedDaysWorked = $rawDaysWorked;
-                    $calculatedDaysAbsent = $rawDaysAbsent;
+                    $legalHolidayDays = 0;
+                    $calculatedDaysWorked = 15;
+                    $calculatedDaysAbsent = 0;
                 }
-            } else {
-                $calculatedDaysWorked = $rawDaysWorked;
-                $calculatedDaysAbsent = $rawDaysAbsent;
             }
 
             foreach($columns as $col) {
                 if ($col == 'days_worked') {
                     ${$cat}[$col] += $calculatedDaysWorked;
+                } elseif ($col == 'legal_holiday_days') {
+                    ${$cat}[$col] += $legalHolidayDays;
                 } elseif ($col == 'days_absent') {
                     ${$cat}[$col] += $calculatedDaysAbsent;
                 } elseif ($col == 'overtime_salary') {
@@ -350,6 +356,7 @@
         <tr>
             <td class="text-left">{{ $payroll->employee->full_name }}</td>
             <td>{{ $calculatedDaysWorked }}</td>
+            <td>{{ $legalHolidayDays }}</td>
             <td>{{ $calculatedDaysAbsent }}</td>
             <td>{{ number_format($payroll->undertime_hours ?? 0, 2) }}</td>
             <td>{{ number_format($dailyRate, 2) }}</td>
