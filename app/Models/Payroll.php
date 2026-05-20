@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Payroll extends Model
 {
-     protected $fillable = [
+    protected $fillable = [
         'employee_id',
         'payroll_period_id',
         'days_worked',
@@ -23,7 +23,7 @@ class Payroll extends Model
         'gross_pay',
         'total_deductions',
         'cash_advance',
-        'shortages',    
+        'shortages',
         'other_deduction',
         'other_incentives',
         'net_pay',
@@ -32,7 +32,7 @@ class Payroll extends Model
         'undertime_deduction',
         'rest_day_ot_hours',
         'rest_day_ot_salary',
-        
+
     ];
 
     public function employee()
@@ -45,34 +45,38 @@ class Payroll extends Model
         return $this->belongsTo(PayrollPeriod::class);
     }
 
-        public function getIsAbsentAttribute()
+    public function getIsAbsentAttribute()
     {
         return $this->status === 'absent_without_pay';
     }
 
-        public function getIsPresentAttribute()
-        {
-            return in_array($this->status, ['on_duty', 'rest_day', 'legal_holiday']);
-        }
+    public function getIsPresentAttribute()
+    {
+        return in_array($this->status, ['on_duty', 'rest_day', 'legal_holiday']);
+    }
 
-        public function contribution()
-{
-    // Assuming contribution table has employee_id as FK
-    return $this->hasOne(Contribution::class, 'employee_id', 'employee_id');
-}
+    public function contribution()
+    {
+        // Assuming contribution table has employee_id as FK
+        return $this->hasOne(Contribution::class, 'employee_id', 'employee_id');
+    }
 
     protected static function booted()
-{
-    static::saving(function ($payroll) {
+    {
+        static::saving(function ($payroll) {
 
-        $cashAdvance = $payroll->cash_advance ?? 0;
-        $shortages = $payroll->shortages ?? 0;
-        $other_deduction = $payroll->other_deduction ?? 0;
-        $other_incentives = $payroll->other_incentives ?? 0;
+            $cashAdvance = $payroll->cash_advance ?? 0;
+            $shortages = $payroll->shortages ?? 0;
+            $other_deduction = $payroll->other_deduction ?? 0;
+            $other_incentives = $payroll->other_incentives ?? 0;
 
-        $payroll->net_pay =
-            ($payroll->gross_pay + $other_incentives)
-            - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
-    });
-}
+            $payroll->net_pay =
+                ($payroll->gross_pay + $other_incentives)
+                - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
+        });
+    }
+    public function period()
+    {
+        return $this->belongsTo(PayrollPeriod::class, 'payroll_period_id');
+    }
 }

@@ -162,3 +162,14 @@ Route::get('/payroll/{period}/all-payslips/{branchIds?}', function (
     );
 
 })->name('payroll.all-payslips')->middleware(['auth']);
+
+Route::get('/admin/print-thirteenth-month-summary', function () {
+    // Pull session flash context matrices 
+    $printData = session()->get('thirteenth_month_print_data');
+
+    if (! $printData) {
+        return abort(403, 'Unauthorized access or session calculation expired. Please refresh table and retry.');
+    }
+
+    return view('print.thirteenth-month-summary', $printData);
+})->name('thirteenth-month.print')->middleware(['web', 'auth']);
