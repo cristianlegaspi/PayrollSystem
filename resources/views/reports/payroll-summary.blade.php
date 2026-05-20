@@ -281,30 +281,36 @@
             $nP = $grossWithIncentives - $totDed;
 
             /**
-             * FIXED CALCULATION LOGIC FOR DAYS WORKED
-             * If Basic Salary matches exactly a multi-day rate block, we evaluate days worked math directly.
-             * Formulas derive precise days worked based on earned basic pay vs standard daily rate.
+             * REVISED ATTENDANCE AUDIT LOGIC
+             * Calibrates both Days Worked and Days Absent dynamically using basic salary 
+             * to filter out holiday processing anomalies.
              */
-            $calculatedDaysWorked = 0;
-            $rawDaysWorked = $payroll->days_worked ?? 0;
             $dailyRate = $payroll->daily_rate ?? 0;
             $basicSalary = $payroll->basic_salary ?? 0;
+            $rawDaysWorked = $payroll->days_worked ?? 0;
+            $rawDaysAbsent = $payroll->days_absent ?? 0;
 
             if ($dailyRate > 0) {
-                // If system database value says 15, but actual Basic Salary points to 12 days (12 * 700 = 8400)
-                $derivedDays = round($basicSalary / $dailyRate, 2);
-                if ($rawDaysWorked == 15 && $derivedDays <= 12) {
-                    $calculatedDaysWorked = (int)$derivedDays;
+                $derivedPaidDays = round($basicSalary / $dailyRate, 2);
+                
+                // If it's a 15-day period block and metrics are out of balance
+                if (($rawDaysWorked + $rawDaysAbsent) != 15 || $rawDaysWorked != $derivedPaidDays) {
+                    $calculatedDaysWorked = (int)$derivedPaidDays;
+                    $calculatedDaysAbsent = 15 - $calculatedDaysWorked;
                 } else {
                     $calculatedDaysWorked = $rawDaysWorked;
+                    $calculatedDaysAbsent = $rawDaysAbsent;
                 }
             } else {
                 $calculatedDaysWorked = $rawDaysWorked;
+                $calculatedDaysAbsent = $rawDaysAbsent;
             }
 
             foreach($columns as $col) {
                 if ($col == 'days_worked') {
                     ${$cat}[$col] += $calculatedDaysWorked;
+                } elseif ($col == 'days_absent') {
+                    ${$cat}[$col] += $calculatedDaysAbsent;
                 } elseif ($col == 'overtime_salary') {
                     ${$cat}[$col] += $totalOT;
                 } elseif ($col == 'gross_pay') {
@@ -344,7 +350,7 @@
         <tr>
             <td class="text-left">{{ $payroll->employee->full_name }}</td>
             <td>{{ $calculatedDaysWorked }}</td>
-            <td>{{ $payroll->days_absent ?? 0 }}</td>
+            <td>{{ $calculatedDaysAbsent }}</td>
             <td>{{ number_format($payroll->undertime_hours ?? 0, 2) }}</td>
             <td>{{ number_format($dailyRate, 2) }}</td>
             <td>{{ number_format($basicSalary, 2) }}</td>
