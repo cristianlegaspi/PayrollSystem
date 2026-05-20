@@ -120,15 +120,19 @@ th {
 $contribution = $payroll->contribution;
 
 $legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee_id)
-    ->whereDate('work_date', '>=', $period->start_date)
-    ->whereDate('work_date', '<=', $period->end_date)
-    ->where('status', 'like', '%legal_holiday%')
+    ->whereBetween('work_date', [
+        $period->start_date->format('Y-m-d'),
+        $period->end_date->format('Y-m-d'),
+    ])
+    ->where('status', 'legal_holiday')
     ->count();
 
 $specialHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee_id)
-    ->whereDate('work_date', '>=', $period->start_date)
-    ->whereDate('work_date', '<=', $period->end_date)
-    ->where('status', 'like', '%special_holiday%')
+    ->whereBetween('work_date', [
+        $period->start_date->format('Y-m-d'),
+        $period->end_date->format('Y-m-d'),
+    ])
+    ->where('status', 'special_holiday')
     ->count();
 
 $data = [
