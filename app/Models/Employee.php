@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
-        protected $fillable = [
+    protected $fillable = [
         'employee_number',
         'full_name',
         'position_id',
@@ -20,12 +20,12 @@ class Employee extends Model
         'status',
     ];
 
-     protected $casts = [
+    protected $casts = [
         'date_hired' => 'date',
         'date_of_birth' => 'date',
     ];
 
-     // Relationships
+    // Relationships
     public function branch()
     {
         return $this->belongsTo(Branch::class);
@@ -46,24 +46,23 @@ class Employee extends Model
         return $this->belongsTo(EmploymentTypes::class);
     }
 
-       public function contribution()
+    public function contribution()
     {
         return $this->hasOne(Contribution::class);
     }
 
-      public function getDisplayNameAttribute()
+    public function getDisplayNameAttribute()
     {
         return "{$this->employee_number} - {$this->full_name}";
     }
-    
+
     public function dtrs()
     {
         return $this->hasMany(DailyTimeRecord::class);
     }
 
     public function payrolls()
-{
-    return $this->hasMany(Payroll::class);
-}
-
+    {
+        return $this->hasMany(Payroll::class);
+    }
 }

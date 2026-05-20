@@ -83,7 +83,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->whereHas('payrolls.period', function ($query) {
                         $query->whereYear('start_date', $this->year);
                     })
-                    ->with(['position', 'branch'])
+                    ->with(['position']) // Removed branch relationship here
             )
             ->columns([
                 TextColumn::make('full_name')
@@ -165,24 +165,22 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * Prepares and groups runtime matrix data into branch categories for print consumption
+     * Prepares flat master list data for print serialization sorted alphabetically
      */
-    public function getGroupedPrintData(): array
+    public function getPrintData(): array
     {
         $employees = Employee::whereHas('payrolls.period', function ($query) {
             $query->whereYear('start_date', $this->year);
-        })->with(['branch'])->get();
+        })->get()->sortBy('full_name');
 
-        $grouped = [];
+        $data = [];
 
         foreach ($employees as $employee) {
-            $branchName = $employee->branch->name ?? 'No Branch';
-            
             $months = $this->overrides[$employee->id] ?? array_fill(1, 12, 0.0);
             $totalBasic = array_sum($months);
             $thirteenthMonthPay = $totalBasic / $this->dividend;
 
-            $grouped[$branchName][] = [
+            $data[] = [
                 'name' => $employee->full_name,
                 'months' => $months,
                 'total_basic' => $totalBasic,
@@ -190,28 +188,24 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             ];
         }
 
-        ksort($grouped);
-        return $grouped;
+        return $data;
     }
 
     protected function getHeaderActions(): array
     {
         return [
-            // Action to trigger printable print previews
             Action::make('printSummary')
                 ->label('Print Summary')
                 ->icon('heroicon-m-printer')
                 ->color('info')
                 ->action(function () {
-                    // Flash active state context safely into session store memory tree
                     session()->put('thirteenth_month_print_data', [
                         'year' => $this->year,
                         'dividend' => $this->dividend,
-                        'grouped_data' => $this->getGroupedPrintData(),
+                        'employees' => $this->getPrintData(),
                         'grand_totals' => $this->getGrandTotals()
                     ]);
 
-                    // Dispatch browser script execution command payload to open window cleanly
                     $this->dispatch('open-print-preview');
                 }),
 
