@@ -76,6 +76,30 @@ th { background-color: #f2f2f2; font-weight: bold; }
     // Final gross and net
     $final_gross_pay = ($data['gross_pay'] ?? 0) + $other_incentives;
     $final_net_pay = $final_gross_pay - $total_deductions;
+
+    /**
+     * DYNAMIC SEPARATION LOGIC FOR THE PAYSLIP DISPLAY
+     * Derives exact Regular Days and Holiday Credits dynamically based on payout value
+     */
+    $dailyRate = $data['daily_rate'] ?? 0;
+    $basicSalary = $data['basic_salary'] ?? 0;
+    $rawDaysWorked = $data['days_worked'] ?? 0;
+
+    $calculatedDaysWorked = $rawDaysWorked;
+    $legalHolidayDays = 0;
+
+    if ($dailyRate > 0) {
+        $totalPaidDays = (int)round($basicSalary / $dailyRate);
+        
+        // If the calculated total days do not equal 15, isolate 1 day to represent the Legal Holiday
+        if ($totalPaidDays < 15 && $totalPaidDays > 0) {
+            $legalHolidayDays = 1;
+            $calculatedDaysWorked = $totalPaidDays - $legalHolidayDays;
+        } else {
+            $legalHolidayDays = 0;
+            $calculatedDaysWorked = $totalPaidDays;
+        }
+    }
 @endphp
 
 <table class="earnings-table">
@@ -87,41 +111,43 @@ th { background-color: #f2f2f2; font-weight: bold; }
     <tr>
         <td>
             Basic Salary (
-            {{ $data['days_worked'] }} Day {{ $data['days_worked'] != 1 ? 's' : '' }} )
-            {{-- ({{ $data['legal_holidays'] }} Legal Holiday{{ $data['legal_holidays'] != 1 ? 's' : '' }}
-            and {{ $data['special_holidays'] }} Special Holiday{{ $data['special_holidays'] != 1 ? 's' : '' }}) --}}
+            {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }}
+            @if($legalHolidayDays > 0)
+                + {{ $legalHolidayDays }} Legal Holiday Credit
+            @endif
+            )
         </td>
-        <td class="right">PHP {{ number_format($data['basic_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($basicSalary, 2) }}</td>
     </tr>
 
     <tr>
-        <td>Undertime Deduction ({{ number_format($data['daily_rate'] / 8, 2) }} × {{ $data['undertime_hours'] }} hrs)</td>
-        <td class="right">PHP {{ number_format($data['undertime_deduction'], 2) }}</td>
+        <td>Undertime Deduction ({{ number_format(($data['daily_rate'] ?? 0) / 8, 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
+        <td class="right">PHP {{ number_format($data['undertime_deduction'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Regular Overtime Pay</td>
-        <td class="right">PHP {{ number_format($data['overtime_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($data['overtime_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Night Differential Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($data['night_diff_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Night Differential OT Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_ot_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($data['night_diff_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Rest Day OT Pay</td>
-        <td class="right">PHP {{ number_format($data['rest_day_ot_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($data['rest_day_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Sunday OT Pay</td>
-        <td class="right">PHP {{ number_format($data['sunday_ot_salary'], 2) }}</td>
+        <td class="right">PHP {{ number_format($data['sunday_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
