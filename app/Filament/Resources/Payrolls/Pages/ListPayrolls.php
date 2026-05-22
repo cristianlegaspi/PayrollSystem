@@ -125,4 +125,5 @@ class ListPayrolls extends ListRecords
 
     protected ?string $heading = 'Payroll Management';
     protected ?string $subheading = 'Overview of All Payroll';
+    
 }

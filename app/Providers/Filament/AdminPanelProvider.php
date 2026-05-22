@@ -32,8 +32,14 @@ class AdminPanelProvider extends PanelProvider
             ->path('admin')
             ->login()
             ->colors([
-                'primary' => Color::Amber,
+                'danger' => Color::Red,
+                'gray' => Color::Slate,
+                'info' => Color::Blue,
+                'primary' => Color::Emerald,
+                'success' => Color::Emerald,
+                'warning' => Color::Orange,
             ])
+
             // ->colors([
             // 'danger' => Color::Red,
             // 'gray' => Color::Slate,
@@ -49,9 +55,11 @@ class AdminPanelProvider extends PanelProvider
             ->pages([
                 Dashboard::class,
             ])
-            ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
+            // ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                // AccountWidget::class,
+                  \App\Filament\Widgets\EmployeeOverview::class,
+                   \App\Filament\Widgets\PayrollChart::class,
+                    //  \App\Filament\Widgets\PayrollSummaryChart::class,
             ])
             ->middleware([
                 EncryptCookies::class,
