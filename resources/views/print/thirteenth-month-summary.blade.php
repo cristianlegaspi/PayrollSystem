@@ -22,7 +22,7 @@
 <div class="header-title">
     <h3 style="margin:0; font-size:14px;">E.A OCAMPO ENTERPRISES</h3>
     <h4 style="margin:4px 0 0 0; font-size:11px;">13TH MONTH PAYROLL SUMMARY — CALENDAR YEAR {{ $year }}</h4>
-    <small style="color:#555;">Calculation Metric Basis: Total Basic Earned Divided By {{ $dividend }}</small>
+   <small style="color:#555;">Calculation Metric Basis: Total Gross Pay Earned Divided By {{ $dividend }}</small>
 </div>
 
 <table>
@@ -31,7 +31,7 @@
             <th class="text-left" style="width:160px;">Employee Name</th>
             <th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th>Jun</th>
             <th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th>
-            <th>Total Basic</th>
+            <th>Total Gross Pay</th>
             <th>13th Month Pay (÷{{ $dividend }})</th>
             <th style="width:120px;">Signature Receipt</th>
         </tr>
@@ -43,7 +43,7 @@
                 @for($m = 1; $m <= 12; $m++)
                     <td>{{ $emp['months'][$m] > 0 ? number_format($emp['months'][$m], 0) : '-' }}</td>
                 @endfor
-                <td class="bold">{{ number_format($emp['total_basic'], 2) }}</td>
+               <td class="bold">₱{{ number_format($emp['total_gross'], 2) }}</td>
                 <td class="bold" style="background-color: #fcfcfc;">₱{{ number_format($emp['thirteenth_pay'], 2) }}</td>
                 <td></td>
             </tr>
@@ -60,7 +60,7 @@
                     {{ $monthlySum > 0 ? number_format($monthlySum, 0) : '-' }}
                 </td>
             @endfor
-            <td>₱{{ number_format($grand_totals['basic'], 2) }}</td>
+           <td>₱{{ number_format($grand_totals['gross'], 2) }}</td>
             <td>₱{{ number_format($grand_totals['thirteenth'], 2) }}</td>
             <td></td>
         </tr>
