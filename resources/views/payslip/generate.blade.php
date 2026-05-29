@@ -49,58 +49,92 @@ th { background-color: #f2f2f2; font-weight: bold; }
 </table>
 
 @php
-    // 1. Determine cutoff from period string like "March 16-31, 2026"
+    $contribution = $payroll->contribution;
+
+    // 1. Get explicit legal and special holiday counts from the DTR records
+    $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+        ->whereBetween('work_date', [$period->start_date, $period->end_date])
+        ->where(function($query) {
+            $query->where('remarks', 'LIKE', '%Legal Holiday%')
+                  ->orWhere('status', 'LIKE', '%legal_holiday%');
+        })
+        ->count();
+
+    $specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+        ->whereBetween('work_date', [$period->start_date, $period->end_date])
+        ->where(function($query) {
+            $query->where('remarks', 'LIKE', '%Special Holiday%')
+                  ->orWhere('status', 'LIKE', '%special_holiday%');
+        })
+        ->count();
+
+    $data = [
+        'period' => $period->description,
+        'employee_name' => $payroll->employee->full_name ?? '',
+        'daily_rate' => (float) ($payroll->daily_rate ?? 0),
+        'position' => $payroll->employee->position->position_name ?? '',
+        'date_generated' => now()->format('F d, Y'),
+        'days_worked' => (int) ($payroll->days_worked ?? 0),
+        'basic_salary' => (float) ($payroll->basic_salary ?? 0),
+        'gross_pay' => (float) ($payroll->gross_pay ?? 0),
+        'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
+        'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
+        'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
+        'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
+        'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
+        'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
+        'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
+        'sss_ee' => (float) ($contribution->sss_ee ?? 0),
+        'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
+        'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
+        'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
+        'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
+        'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
+        'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
+        'cash_advance' => (float) ($payroll->cash_advance ?? 0),
+        'shortages' => (float) ($payroll->shortages ?? 0),
+        'other_deduction' => (float) ($payroll->other_deduction ?? 0),
+        'other_incentives' => (float) ($payroll->other_incentives ?? 0),
+    ];
+
     preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
-    $startDay = $matches[1] ?? 1;
-    $startDay = (int) $startDay;
+    $startDay = (int) ($matches[1] ?? 1);
 
     $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
     $isSecondCutoff = $startDay >= 16;
 
-    // 2. Conditional contributions
-    $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
-    $philhealth_ee = $isFirstCutoff ? ($data['philhealth_ee'] ?? 0) : 0;
-    $pagibig_ee = $isFirstCutoff ? ($data['pagibig_ee'] ?? 0) : 0;
-    $premium_ss = $isFirstCutoff ? ($data['premium_voluntary_ss_contribution'] ?? 0) : 0;
+    $sss_ee = $isFirstCutoff ? $data['sss_ee'] : 0;
+    $philhealth_ee = $isFirstCutoff ? $data['philhealth_ee'] : 0;
+    $pagibig_ee = $isFirstCutoff ? $data['pagibig_ee'] : 0;
+    $premium_ss = $isFirstCutoff ? $data['premium_voluntary_ss_contribution'] : 0;
 
-    $sss_salary_loan = $isSecondCutoff ? ($data['sss_salary_loan'] ?? 0) : 0;
-    $sss_calamity_loan = $isSecondCutoff ? ($data['sss_calamity_loan'] ?? 0) : 0;
-    $pagibig_salary_loan = $isSecondCutoff ? ($data['pagibig_salary_loan'] ?? 0) : 0;
+    $sss_salary_loan = $isSecondCutoff ? $data['sss_salary_loan'] : 0;
+    $sss_calamity_loan = $isSecondCutoff ? $data['sss_calamity_loan'] : 0;
+    $pagibig_salary_loan = $isSecondCutoff ? $data['pagibig_salary_loan'] : 0;
 
-    // 3. Other base values
-    $cash_advance = $data['cash_advance'] ?? 0;
-    $shortages = $data['shortages'] ?? 0;
-    $other_deduction = $data['other_deduction'] ?? 0;
-    $other_incentives = $data['other_incentives'] ?? 0;
+    $cash_advance = $data['cash_advance'];
+    $shortages = $data['shortages'];
+    $other_deduction = $data['other_deduction'];
+    $other_incentives = $data['other_incentives'];
 
-    // 4. Calculations for totals
-    $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss
-                        + $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan
-                        + $cash_advance + $shortages + $other_deduction;
+    $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
+                        $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
+                        $cash_advance + $shortages + $other_deduction;
 
-    $final_gross_pay = ($data['gross_pay'] ?? 0) + $other_incentives;
+    $final_gross_pay = $data['gross_pay'] + $other_incentives;
     $final_net_pay = $final_gross_pay - $total_deductions;
 
-    // 5. NO MORE GUESSWORK MATH: 
-    // Simply read what was calculated or fallback safely to a 1-day isolation logic if not provided.
-    $dailyRate = $data['daily_rate'] ?? 0;
-    $basicSalary = $data['basic_salary'] ?? 0;
-    $rawDaysWorked = $data['days_worked'] ?? 0; 
-
-    // We check if the backend directly calculated a premium difference
+    // 2. Clear, Deterministic Display Separation Logic
+    $dailyRate = $data['daily_rate'];
+    $basicSalary = $data['basic_salary'];
+    
     $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
     
-    // If it's a normal employee with standard duty records (like Leobert: 14 days worked, 15 units paid)
-    if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1) {
-        $legalHolidayDays = 1;
-        $calculatedDaysWorked = $rawDaysWorked;
-    } 
-    // If it detects a complex profile with leaves like Francis (11 days total in DTR)
-    elseif ($totalPaidUnits > $rawDaysWorked && $rawDaysWorked > 1) {
-        $legalHolidayDays = 1;
-        $calculatedDaysWorked = $totalPaidUnits - 1; 
-    }
-    else {
+    // Instead of using database counters which include rest days, base the text display on true holiday presence
+    if ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount) {
+        $legalHolidayDays = $legalHolidaysCount;
+        $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
+    } else {
         $legalHolidayDays = 0;
         $calculatedDaysWorked = $totalPaidUnits;
     }
