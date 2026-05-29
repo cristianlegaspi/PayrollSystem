@@ -102,7 +102,7 @@ th { background-color: #f2f2f2; font-weight: bold; }
 
     <tr>
         <td>
-            Basic Salary + Holidays ({{ $totalPaidDays }}{{ $totalPaidDays != 1 ? : '' }})
+            Basic Salary + Holidays ({{ $totalPaidDays }})
             @if($holidayDays > 0)
                 {{-- <br>
                 <span style="font-size: 8px; color: #666; font-style: italic;">
