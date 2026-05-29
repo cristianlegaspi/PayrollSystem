@@ -11,13 +11,9 @@ class PayslipService
     {
         $employee = $payroll->employee;
         $contribution = $payroll->contribution;
-
         $period = $payroll->payrollPeriod;
 
-       $period = $payroll->payrollPeriod;
-
-        // We fetch the counts by looking at the DailyTimeRecord model
-        // We use trim and lowercase to ensure we find the match even if there are spaces
+        // Fetch explicit holiday counts from the DTR records
         $legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $employee->id)
             ->whereBetween('work_date', [$period->start_date, $period->end_date])
             ->where('remarks', 'LIKE', '%Legal Holiday%')
@@ -28,27 +24,15 @@ class PayslipService
             ->where('remarks', 'LIKE', '%Special Holiday%')
             ->count();
 
-
-
-
-
         $data = [
-            'company' => 'FULLTANK GAS STATION',
-            'period' => $payroll->payrollPeriod->description,
-
+            'company' => 'E.A OCAMPO ENTERPRISES', // Updated to match your current payload header
+            'period' => $period->description,
             'employee_name' => $employee->full_name,
-            'position' => $employee->position->position_name ?? 'Pump Attendant',
-
+            'position' => $employee->position->position_name ?? 'Team Leader',
             'daily_rate' => $payroll->daily_rate,
             'days_worked' => $payroll->days_worked,
-
-            // Pass the calculated counts here
             'legal_holidays' => $legalHolidays,
             'special_holidays' => $specialHolidays,
-
-
-
-
             'days_absent' => $payroll->days_absent,
             'undertime_hours' => $payroll->undertime_hours,
             'undertime_deduction' => $payroll->undertime_deduction,
@@ -61,7 +45,6 @@ class PayslipService
             'rest_day_ot_salary' => $payroll->rest_day_ot_salary,
             'sunday_ot_salary' => $payroll->sunday_ot_salary,
             'other_incentives' => $payroll->other_incentives ?? 0,
-            
             'gross_pay' => $payroll->gross_pay,
 
             // DEDUCTIONS
@@ -76,20 +59,18 @@ class PayslipService
             'shortages' => $payroll->shortages ?? 0,
             'other_deduction' => $payroll->other_deduction ?? 0,
             
-
             'total_deductions' => $payroll->total_deductions +
                                   ($payroll->cash_advance ?? 0) +
-                                 ($payroll->other_deduction ?? 0) +
-
+                                  ($payroll->other_deduction ?? 0) +
                                   ($payroll->shortages ?? 0),
 
             'net_pay' => $payroll->net_pay,
-
-            'date_generated' => now()->format('M d, Y'),
+            'date_generated' => now()->format('F d, Y'),
         ];
 
-        return Pdf::loadView('payslip.generate', compact('data'))
-            ->setPaper('a5', 'portrait')
+        // CRITICAL FIX: Pass $payroll, $contribution, and $period into the view alongside $data
+        return Pdf::loadView('payslip.generate', compact('data', 'payroll', 'contribution', 'period'))
+            ->setPaper('a4', 'portrait') // Adjusted paper profile to A4 matching your CSS profile
             ->stream("Payslip-{$employee->full_name}.pdf");
     }
 }
