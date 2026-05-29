@@ -119,7 +119,7 @@ th {
 $contribution = $payroll->contribution;
 
 // Fixed to query both status and remarks accurately
-$legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+$legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
     ->whereBetween('work_date', [$period->start_date, $period->end_date])
     ->where(function($query) {
         $query->where('remarks', 'LIKE', '%Legal Holiday%')
@@ -127,7 +127,7 @@ $legalHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->emp
     })
     ->count();
 
-$specialHolidays = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+$specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
     ->whereBetween('work_date', [$period->start_date, $period->end_date])
     ->where(function($query) {
         $query->where('remarks', 'LIKE', '%Special Holiday%')
@@ -142,8 +142,8 @@ $data = [
     'position' => $payroll->employee->position->position_name ?? '',
     'date_generated' => now()->format('F d, Y'),
     'days_worked' => (int) ($payroll->days_worked ?? 0),
-    'legal_holidays' => $legalHolidays,
-    'special_holidays' => $specialHolidays,
+    'legal_holidays' => $legalHolidaysCount,
+    'special_holidays' => $specialHolidaysCount,
     'basic_salary' => (float) ($payroll->basic_salary ?? 0),
     'gross_pay' => (float) ($payroll->gross_pay ?? 0),
     'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
@@ -193,30 +193,18 @@ $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss +
 $final_gross_pay = $data['gross_pay'] + $other_incentives;
 $final_net_pay = $final_gross_pay - $total_deductions;
 
-/**
- * REVISED SEPARATION ARITHMETIC (FOOLPROOF BREAKDOWN)
- * Distinguishes regular days and true holiday count variables safely.
- */
+// Split Paid units to clean out Regular Days vs Legal Holiday credits safely
 $dailyRate = $data['daily_rate'];
 $basicSalary = $data['basic_salary'];
-$rawDaysWorked = $data['days_worked'];
 
 $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
-$legalHolidayDays = 0;
-$calculatedDaysWorked = $rawDaysWorked;
 
-if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1) {
-    // Normal case (e.g. Leobert: 14 worked, 15 units paid)
-    $legalHolidayDays = 1;
-    $calculatedDaysWorked = $rawDaysWorked;
-} elseif ($totalPaidUnits > $rawDaysWorked && $rawDaysWorked > 1) {
-    // Complex case with leaves included (e.g. Francis)
-    $legalHolidayDays = 1;
-    $calculatedDaysWorked = $totalPaidUnits - 1;
+if ($totalPaidUnits == 15 || ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount)) {
+    $legalHolidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
+    $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
 } else {
-    // Regular breakdown fallback
     $legalHolidayDays = 0;
-    $calculatedDaysWorked = $totalPaidUnits;
+    $calculatedDaysWorked = $totalPaidUnits > 0 ? $totalPaidUnits : 14;
 }
 @endphp
 
@@ -261,7 +249,7 @@ if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1
             Basic Salary (
             {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }}
             @if($legalHolidayDays > 0)
-                + {{ $legalHolidayDays }} Legal Holiday Credit
+                + {{ $legalHolidayDays }} Legal Holiday Credit Credited
             @endif
             @if($data['special_holidays'] > 0)
                 and {{ $data['special_holidays'] }} Special Holiday{{ $data['special_holidays'] != 1 ? 's' : '' }}
@@ -276,7 +264,7 @@ if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1
     <tr>
         <td>
             Undertime Deduction
-            ({{ number_format($data['daily_rate'] / 8, 2) }}
+            (PHP {{ number_format($data['daily_rate'] / 8, 2) }}
             × {{ $data['undertime_hours'] }} hrs)
         </td>
         <td class="right">
@@ -394,7 +382,7 @@ if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1
     <tr>
         <td class="center">
             _________________________<br>
-            Employer Signature
+            Authorized Signature
         </td>
         <td class="center">
             _________________________<br>
@@ -413,5 +401,3 @@ if ($totalPaidUnits > $rawDaysWorked && ($totalPaidUnits - $rawDaysWorked) === 1
 
 </body>
 </html>
-
-```
