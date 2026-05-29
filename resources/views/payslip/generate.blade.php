@@ -36,6 +36,24 @@ th { background-color: #f2f2f2; font-weight: bold; }
     $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
     $isSecondCutoff = $startDay >= 16;
 
+    // Handle structural splitting of units for the basic salary line description
+    $dailyRate = (float)($data['daily_rate'] ?? 0);
+    $basicSalary = (float)($data['basic_salary'] ?? 0);
+    $legalHolidaysCount = (int)($data['legal_holidays'] ?? 0);
+    $undertime_deduction = (float)($data['undertime_deduction'] ?? 0);
+    
+    // Calculate total days directly from basic salary and daily rate
+    $totalPaidDays = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
+    
+    // Explicit label interception for remarks row mapping
+    if ($totalPaidDays == 15 || ($legalHolidaysCount > 0 && $totalPaidDays >= $legalHolidaysCount)) {
+        $holidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
+        $calculatedDaysWorked = $totalPaidDays - $holidayDays;
+    } else {
+        $holidayDays = 0;
+        $calculatedDaysWorked = $totalPaidDays > 0 ? $totalPaidDays : 14;
+    }
+
     // Separate statutory deductions based on standard cutoff rules
     $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
     $philhealth_ee = $isFirstCutoff ? ($data['philhealth_ee'] ?? 0) : 0;
@@ -51,29 +69,13 @@ th { background-color: #f2f2f2; font-weight: bold; }
     $other_deduction = $data['other_deduction'] ?? 0;
     $other_incentives = $data['other_incentives'] ?? 0;
 
+    // Added undertime_deduction here so it pulls correctly into totals
     $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
                         $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
-                        $cash_advance + $shortages + $other_deduction;
+                        $cash_advance + $shortages + $other_deduction + $undertime_deduction;
 
     $final_gross_pay = ($data['gross_pay'] ?? 0);
     $final_net_pay = $final_gross_pay - $total_deductions;
-
-    // Handle structural splitting of units for the basic salary line description
-    $dailyRate = (float)($data['daily_rate'] ?? 0);
-    $basicSalary = (float)($data['basic_salary'] ?? 0);
-    $legalHolidaysCount = (int)($data['legal_holidays'] ?? 0);
-    
-    // Calculate total days directly from basic salary and daily rate
-    $totalPaidDays = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
-    
-    // Explicit label interception for remarks row mapping
-    if ($totalPaidDays == 15 || ($legalHolidaysCount > 0 && $totalPaidDays >= $legalHolidaysCount)) {
-        $holidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
-        $calculatedDaysWorked = $totalPaidDays - $holidayDays;
-    } else {
-        $holidayDays = 0;
-        $calculatedDaysWorked = $totalPaidDays > 0 ? $totalPaidDays : 14;
-    }
 @endphp
 
 <body>
@@ -113,10 +115,6 @@ th { background-color: #f2f2f2; font-weight: bold; }
         <td class="right">
             PHP {{ number_format($data['basic_salary'], 2) }}
         </td>
-    </tr>
-    <tr>
-        <td>Undertime Deduction (PHP {{ number_format(($dailyRate / 8), 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
-        <td class="right">PHP {{ number_format($data['undertime_deduction'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
@@ -158,6 +156,11 @@ th { background-color: #f2f2f2; font-weight: bold; }
 <table class="deductions-table">
     <tr class="section">
         <td colspan="2">DEDUCTIONS</td>
+    </tr>
+
+    <tr>
+        <td>Undertime Deduction (PHP {{ number_format(($dailyRate / 8), 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
+        <td class="right">PHP {{ number_format($undertime_deduction, 2) }}</td>
     </tr>
 
     <tr>
