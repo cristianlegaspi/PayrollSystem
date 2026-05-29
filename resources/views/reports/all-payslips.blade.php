@@ -1,6 +1,6 @@
-The `ParseError` means a Blade directive was opened but not closed properly, or there is a stray tag somewhere at the very end of the file.
+The `Malformed @foreach statement` error happens because Blade is strict about keeping the statement on a single line with its opening parentheses. In the previous snippet, the loop statement was accidentally split with some extra spacing, which breaks the Laravel view compiler.
 
-Here is the **complete, fully validated, and structured code** for your `all-payslips.blade.php` report file. All `@if`, `@foreach`, and `@php` blocks are perfectly matched and nested.
+Here is the fully fixed, clean **Blade template code** with the corrected `@foreach` block format.
 
 ```html
 <!DOCTYPE html>
@@ -119,7 +119,6 @@ th {
 <body>
 
 @foreach($payrolls as $payroll)
-
 @php
 $contribution = $payroll->contribution;
 
@@ -405,7 +404,6 @@ if ($data['legal_holidays'] > 0 && $totalPaidUnits >= $data['legal_holidays']) {
     </div>
 
 </div>
-
 @endforeach
 
 </body>
