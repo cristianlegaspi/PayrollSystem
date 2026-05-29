@@ -1,8 +1,3 @@
-Here is your fully updated **Bulk Payslip Template** (`All Payslips`).
-
-I fixed the parsing math by leveraging the dynamic variable logic from the previous step. Additionally, I modified the `$legalHolidays` query to search **both** the `status` and `remarks` columns using an `OR` condition. This ensures that whether a holiday is tagged via the dropdown status or typed into the remarks for cross-over night shifts, it is caught dynamically on both ends.
-
-```html
 <!DOCTYPE html>
 <html>
 <head>

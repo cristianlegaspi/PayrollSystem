@@ -1,8 +1,3 @@
-The error happens because the code variable declaration block was split. The variable `$sss_ee` was defined *after* the cutoff conditional statements used it.
-
-Here is the fully fixed, integrated, and clean **Blade template** file. Replacing your entire file with this will resolve the `Undefined variable` error and accurately separate the Regular Days and Legal Holiday Credit.
-
-```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -30,24 +25,6 @@ th { background-color: #f2f2f2; font-weight: bold; }
 </style>
 </head>
 
-<body>
-
-<div class="header">
-    <h1>E.A OCAMPO ENTERPRISES</h1>
-    <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
-</div>
-
-<table class="no-border">
-    <tr>
-        <td><strong>Name:</strong> {{ $data['employee_name'] }}</td>
-        <td><strong>Daily Rate:</strong> PHP {{ number_format($data['daily_rate'], 2) }}</td>
-    </tr>
-    <tr>
-        <td><strong>Position:</strong> {{ $data['position'] }}</td>
-        <td><strong>Date:</strong> {{ $data['date_generated'] }}</td>
-    </tr>
-</table>
-
 @php
     $contribution = $payroll->contribution;
 
@@ -68,8 +45,9 @@ th { background-color: #f2f2f2; font-weight: bold; }
         })
         ->count();
 
+    // Reconstruct the $data payload securely at the top so HTML structure can consume it safely
     $data = [
-        'period' => $period->description,
+        'period' => $period->description ?? '',
         'employee_name' => $payroll->employee->full_name ?? '',
         'daily_rate' => (float) ($payroll->daily_rate ?? 0),
         'position' => $payroll->employee->position->position_name ?? '',
@@ -124,13 +102,12 @@ th { background-color: #f2f2f2; font-weight: bold; }
     $final_gross_pay = $data['gross_pay'] + $other_incentives;
     $final_net_pay = $final_gross_pay - $total_deductions;
 
-    // 2. Clear, Deterministic Display Separation Logic
+    // Split Paid units to cleanly pull out the Legal Holidays
     $dailyRate = $data['daily_rate'];
     $basicSalary = $data['basic_salary'];
     
     $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
     
-    // Instead of using database counters which include rest days, base the text display on true holiday presence
     if ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount) {
         $legalHolidayDays = $legalHolidaysCount;
         $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
@@ -139,6 +116,24 @@ th { background-color: #f2f2f2; font-weight: bold; }
         $calculatedDaysWorked = $totalPaidUnits;
     }
 @endphp
+
+<body>
+
+<div class="header">
+    <h1>E.A OCAMPO ENTERPRISES</h1>
+    <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
+</div>
+
+<table class="no-border">
+    <tr>
+        <td><strong>Name:</strong> {{ $data['employee_name'] }}</td>
+        <td><strong>Daily Rate:</strong> PHP {{ number_format($data['daily_rate'], 2) }}</td>
+    </tr>
+    <tr>
+        <td><strong>Position:</strong> {{ $data['position'] }}</td>
+        <td><strong>Date:</strong> {{ $data['date_generated'] }}</td>
+    </tr>
+</table>
 
 <table class="earnings-table">
     <tr class="section">
@@ -151,7 +146,7 @@ th { background-color: #f2f2f2; font-weight: bold; }
             Basic Salary (
             {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }}
             @if($legalHolidayDays > 0)
-                + {{ $legalHolidayDays }} Legal Holiday Credit
+                + {{ $legalHolidayDays }} Legal Holiday Credit{{ $legalHolidayDays != 1 ? 's' : '' }} Credited
             @endif
             )
         </td>
@@ -159,7 +154,7 @@ th { background-color: #f2f2f2; font-weight: bold; }
     </tr>
 
     <tr>
-        <td>Undertime Deduction ({{ number_format(($data['daily_rate'] ?? 0) / 8, 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
+        <td>Undertime Deduction (PHP {{ number_format(($data['daily_rate'] ?? 0) / 8, 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
         <td class="right">PHP {{ number_format($data['undertime_deduction'] ?? 0, 2) }}</td>
     </tr>
 
@@ -271,7 +266,7 @@ th { background-color: #f2f2f2; font-weight: bold; }
     <tr>
         <td class="center">
             _________________________<br>
-            Employer Signature
+            Authorized Signature
         </td>
         <td class="center">
             _________________________<br>
