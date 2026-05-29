@@ -84,7 +84,7 @@ class PayrollPeriodsTable
                         $record->status === 'Finalized' &&
                             $record->remarks !== 'Approved' && 
                             Auth::check() &&
-                            in_array(optional(Auth::user()->role)->role_name, ['Owner', 'Admin'])  // 👈 role restriction
+                            in_array(optional(Auth::user()->role)->role_name, ['Owner', 'Admin', 'Super Admin'])  // 👈 role restriction
                     )
                     ->url(fn($record) => route('payroll.print', ['period' => $record->id]))
                     ->openUrlInNewTab(),
