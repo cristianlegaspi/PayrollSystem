@@ -102,12 +102,12 @@ th { background-color: #f2f2f2; font-weight: bold; }
 
     <tr>
         <td>
-            Basic Salary + Holidays ({{ $totalPaidDays }}{{ $totalPaidDays != 1 ? 's' : '' }})
+            Basic Salary + Holidays ({{ $totalPaidDays }}{{ $totalPaidDays != 1 ? : '' }})
             @if($holidayDays > 0)
-                <br>
+                {{-- <br>
                 <span style="font-size: 8px; color: #666; font-style: italic;">
-                    *Remarks: Includes {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }} and {{ $holidayDays }} Holiday Credit{{ $holidayDays != 1 ? 's' : '' }}
-                </span>
+                    *Remarks: Includes {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }} and {{ $holidayDays }} Holiday Credit{{ $holidayDays != 1 ? : '' }}
+                </span> --}}
             @endif
         </td>
         <td class="right">
