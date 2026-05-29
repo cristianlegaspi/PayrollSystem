@@ -79,8 +79,9 @@ class PayrollService
                  | legal_holiday + no work = regular pay only
                  |--------------------------------------------------------------
                  */
-                elseif ($status === 'legal_holiday') {
+               elseif ($status === 'legal_holiday' || str_contains($remarks, 'legal holiday')) {
                     if ($totalHrs > 0) {
+                        // Worked Legal Holiday = Double Pay (200%)
                         $totalRegularSalary += ($dailyRate * 2);
 
                         if ($otHrs > 0) {
@@ -89,7 +90,7 @@ class PayrollService
 
                         $daysWorked += 1;
                     } else {
-                        // Legal Holiday (No Work) = regular daily pay only
+                        // Legal Holiday (No Work) = Regular Daily Pay (100%)
                         $totalRegularSalary += $dailyRate;
                     }
                 }
