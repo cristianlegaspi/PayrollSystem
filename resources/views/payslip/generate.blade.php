@@ -26,85 +26,84 @@ th { background-color: #f2f2f2; font-weight: bold; }
 </head>
 
 @php
-    $contribution = $payroll->contribution;
+    // Fallback normalization in case $payroll or $data is structured differently by the controller
+    $payrollObj = $payroll ?? null;
+    $contribution = isset($payrollObj) ? $payrollObj->contribution : (object)[];
+    $employee = isset($payrollObj) ? $payrollObj->employee : (object)[];
+    $periodObj = $period ?? null;
 
-    // 1. Get explicit legal and special holiday counts from the DTR records
-    $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-        ->whereBetween('work_date', [$period->start_date, $period->end_date])
-        ->where(function($query) {
-            $query->where('remarks', 'LIKE', '%Legal Holiday%')
-                  ->orWhere('status', 'LIKE', '%legal_holiday%');
-        })
-        ->count();
+    // 1. Safe extraction of explicit legal holiday records
+    $legalHolidaysCount = 0;
+    if (isset($employee->id) && isset($periodObj->start_date)) {
+        $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $employee->id)
+            ->whereBetween('work_date', [$periodObj->start_date, $periodObj->end_date])
+            ->where(function($query) {
+                $query->where('remarks', 'LIKE', '%Legal Holiday%')
+                      ->orWhere('status', 'LIKE', '%legal_holiday%');
+            })
+            ->count();
+    }
 
-    $specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-        ->whereBetween('work_date', [$period->start_date, $period->end_date])
-        ->where(function($query) {
-            $query->where('remarks', 'LIKE', '%Special Holiday%')
-                  ->orWhere('status', 'LIKE', '%special_holiday%');
-        })
-        ->count();
-
-    // Reconstruct the $data payload securely at the top so HTML structure can consume it safely
-    $data = [
-        'period' => $period->description ?? '',
-        'employee_name' => $payroll->employee->full_name ?? '',
-        'daily_rate' => (float) ($payroll->daily_rate ?? 0),
-        'position' => $payroll->employee->position->position_name ?? '',
-        'date_generated' => now()->format('F d, Y'),
-        'days_worked' => (int) ($payroll->days_worked ?? 0),
-        'basic_salary' => (float) ($payroll->basic_salary ?? 0),
-        'gross_pay' => (float) ($payroll->gross_pay ?? 0),
-        'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
-        'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
-        'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
-        'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
-        'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
-        'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
-        'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
-        'sss_ee' => (float) ($contribution->sss_ee ?? 0),
-        'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
-        'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
-        'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
-        'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
-        'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
-        'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
-        'cash_advance' => (float) ($payroll->cash_advance ?? 0),
-        'shortages' => (float) ($payroll->shortages ?? 0),
-        'other_deduction' => (float) ($payroll->other_deduction ?? 0),
-        'other_incentives' => (float) ($payroll->other_incentives ?? 0),
+    // 2. Safe merge of existing arrays/objects into a normalized workspace array
+    $payrollData = [
+        'period' => $data['period'] ?? $periodObj->description ?? '',
+        'employee_name' => $data['employee_name'] ?? $employee->full_name ?? '',
+        'daily_rate' => (float) ($data['daily_rate'] ?? $payrollObj->daily_rate ?? 0),
+        'position' => $data['position'] ?? $employee->position->position_name ?? '',
+        'date_generated' => $data['date_generated'] ?? now()->format('F d, Y'),
+        'days_worked' => (int) ($data['days_worked'] ?? $payrollObj->days_worked ?? 0),
+        'basic_salary' => (float) ($data['basic_salary'] ?? $payrollObj->basic_salary ?? 0),
+        'gross_pay' => (float) ($data['gross_pay'] ?? $payrollObj->gross_pay ?? 0),
+        'undertime_hours' => (float) ($data['undertime_hours'] ?? $payrollObj->undertime_hours ?? 0),
+        'undertime_deduction' => (float) ($data['undertime_deduction'] ?? $payrollObj->undertime_deduction ?? 0),
+        'overtime_salary' => (float) ($data['overtime_salary'] ?? $payrollObj->overtime_salary ?? 0),
+        'night_diff_salary' => (float) ($data['night_diff_salary'] ?? $payrollObj->night_diff_salary ?? 0),
+        'night_diff_ot_salary' => (float) ($data['night_diff_ot_salary'] ?? $payrollObj->night_diff_ot_salary ?? 0),
+        'rest_day_ot_salary' => (float) ($data['rest_day_ot_salary'] ?? $payrollObj->rest_day_ot_salary ?? 0),
+        'sunday_ot_salary' => (float) ($data['sunday_ot_salary'] ?? $payrollObj->sunday_ot_salary ?? 0),
+        'sss_ee' => (float) ($data['sss_ee'] ?? $contribution->sss_ee ?? 0),
+        'philhealth_ee' => (float) ($data['philhealth_ee'] ?? $contribution->philhealth_ee ?? 0),
+        'pagibig_ee' => (float) ($data['pagibig_ee'] ?? $contribution->pagibig_ee ?? 0),
+        'premium_voluntary_ss_contribution' => (float) ($data['premium_voluntary_ss_contribution'] ?? $contribution->premium_voluntary_ss_contribution ?? 0),
+        'sss_salary_loan' => (float) ($data['sss_salary_loan'] ?? $contribution->sss_salary_loan ?? 0),
+        'sss_calamity_loan' => (float) ($data['sss_calamity_loan'] ?? $contribution->sss_calamity_loan ?? 0),
+        'pagibig_salary_loan' => (float) ($data['pagibig_salary_loan'] ?? $contribution->pagibig_salary_loan ?? 0),
+        'cash_advance' => (float) ($data['cash_advance'] ?? $payrollObj->cash_advance ?? 0),
+        'shortages' => (float) ($data['shortages'] ?? $payrollObj->shortages ?? 0),
+        'other_deduction' => (float) ($data['other_deduction'] ?? $payrollObj->other_deduction ?? 0),
+        'other_incentives' => (float) ($data['other_incentives'] ?? $payrollObj->other_incentives ?? 0),
     ];
 
-    preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
+    preg_match('/(\d+)-(\d+)/', $payrollData['period'], $matches);
     $startDay = (int) ($matches[1] ?? 1);
 
     $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
     $isSecondCutoff = $startDay >= 16;
 
-    $sss_ee = $isFirstCutoff ? $data['sss_ee'] : 0;
-    $philhealth_ee = $isFirstCutoff ? $data['philhealth_ee'] : 0;
-    $pagibig_ee = $isFirstCutoff ? $data['pagibig_ee'] : 0;
-    $premium_ss = $isFirstCutoff ? $data['premium_voluntary_ss_contribution'] : 0;
+    $sss_ee = $isFirstCutoff ? $payrollData['sss_ee'] : 0;
+    $philhealth_ee = $isFirstCutoff ? $payrollData['philhealth_ee'] : 0;
+    $pagibig_ee = $isFirstCutoff ? $payrollData['pagibig_ee'] : 0;
+    $premium_ss = $isFirstCutoff ? $payrollData['premium_voluntary_ss_contribution'] : 0;
 
-    $sss_salary_loan = $isSecondCutoff ? $data['sss_salary_loan'] : 0;
-    $sss_calamity_loan = $isSecondCutoff ? $data['sss_calamity_loan'] : 0;
-    $pagibig_salary_loan = $isSecondCutoff ? $data['pagibig_salary_loan'] : 0;
+    $sss_salary_loan = $isSecondCutoff ? $payrollData['sss_salary_loan'] : 0;
+    $sss_calamity_loan = $isSecondCutoff ? $payrollData['sss_calamity_loan'] : 0;
+    $pagibig_salary_loan = $isSecondCutoff ? $payrollData['pagibig_salary_loan'] : 0;
 
-    $cash_advance = $data['cash_advance'];
-    $shortages = $data['shortages'];
-    $other_deduction = $data['other_deduction'];
-    $other_incentives = $data['other_incentives'];
+    $cash_advance = $payrollData['cash_advance'];
+    $shortages = $payrollData['shortages'];
+    $other_deduction = $payrollData['other_deduction'];
+    $other_incentives = $payrollData['other_incentives'];
 
     $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
                         $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
                         $cash_advance + $shortages + $other_deduction;
 
-    $final_gross_pay = $data['gross_pay'] + $other_incentives;
+    $final_gross_pay = $payrollData['gross_pay'] + $other_incentives;
     $final_net_pay = $final_gross_pay - $total_deductions;
 
-    // Split Paid units to cleanly pull out the Legal Holidays
-    $dailyRate = $data['daily_rate'];
-    $basicSalary = $data['basic_salary'];
+    // Split Paid units to clean out Regular Days vs Legal Holiday credits
+    $dailyRate = $payrollData['daily_rate'];
+    $basicSalary = $payrollData['basic_salary'];
     
     $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
     
@@ -112,8 +111,8 @@ th { background-color: #f2f2f2; font-weight: bold; }
         $legalHolidayDays = $legalHolidaysCount;
         $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
     } else {
-        $legalHolidayDays = 0;
-        $calculatedDaysWorked = $totalPaidUnits;
+        $legalHolidayDays = ($totalPaidUnits == 15 && $payrollData['days_worked'] == 14) ? 1 : 0; 
+        $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
     }
 @endphp
 
@@ -121,17 +120,17 @@ th { background-color: #f2f2f2; font-weight: bold; }
 
 <div class="header">
     <h1>E.A OCAMPO ENTERPRISES</h1>
-    <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
+    <p>PAYROLL PERIOD: {{ $payrollData['period'] }}</p>
 </div>
 
 <table class="no-border">
     <tr>
-        <td><strong>Name:</strong> {{ $data['employee_name'] }}</td>
-        <td><strong>Daily Rate:</strong> PHP {{ number_format($data['daily_rate'], 2) }}</td>
+        <td><strong>Name:</strong> {{ $payrollData['employee_name'] }}</td>
+        <td><strong>Daily Rate:</strong> PHP {{ number_format($payrollData['daily_rate'], 2) }}</td>
     </tr>
     <tr>
-        <td><strong>Position:</strong> {{ $data['position'] }}</td>
-        <td><strong>Date:</strong> {{ $data['date_generated'] }}</td>
+        <td><strong>Position:</strong> {{ $payrollData['position'] }}</td>
+        <td><strong>Date:</strong> {{ $payrollData['date_generated'] }}</td>
     </tr>
 </table>
 
@@ -154,33 +153,33 @@ th { background-color: #f2f2f2; font-weight: bold; }
     </tr>
 
     <tr>
-        <td>Undertime Deduction (PHP {{ number_format(($data['daily_rate'] ?? 0) / 8, 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
-        <td class="right">PHP {{ number_format($data['undertime_deduction'] ?? 0, 2) }}</td>
+        <td>Undertime Deduction (PHP {{ number_format(($payrollData['daily_rate'] ?? 0) / 8, 2) }} × {{ $payrollData['undertime_hours'] ?? 0 }} hrs)</td>
+        <td class="right">PHP {{ number_format($payrollData['undertime_deduction'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Regular Overtime Pay</td>
-        <td class="right">PHP {{ number_format($data['overtime_salary'] ?? 0, 2) }}</td>
+        <td class="right">PHP {{ number_format($payrollData['overtime_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Night Differential Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_salary'] ?? 0, 2) }}</td>
+        <td class="right">PHP {{ number_format($payrollData['night_diff_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Night Differential OT Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_ot_salary'] ?? 0, 2) }}</td>
+        <td class="right">PHP {{ number_format($payrollData['night_diff_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Rest Day OT Pay</td>
-        <td class="right">PHP {{ number_format($data['rest_day_ot_salary'] ?? 0, 2) }}</td>
+        <td class="right">PHP {{ number_format($payrollData['rest_day_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
         <td>Sunday OT Pay</td>
-        <td class="right">PHP {{ number_format($data['sunday_ot_salary'] ?? 0, 2) }}</td>
+        <td class="right">PHP {{ number_format($payrollData['sunday_ot_salary'] ?? 0, 2) }}</td>
     </tr>
 
     <tr>
