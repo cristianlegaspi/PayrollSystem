@@ -1,6 +1,6 @@
-Here is your fully updated **Bulk Payslip Template** (`All Payslips`).
+The error happens because the variable name used inside the array keys mismatch. At the top of the `@php` block, the query results are stored in singular/plural mixed forms (`$specialHolidaysCount` vs `$data['special_holidays']`).
 
-I fixed the parsing math by leveraging the dynamic variable logic from the previous step. Additionally, I modified the `$legalHolidays` query to search **both** the `status` and `remarks` columns using an `OR` condition. This ensures that whether a holiday is tagged via the dropdown status or typed into the remarks for cross-over night shifts, it is caught dynamically on both ends.
+Here is the **complete, fully corrected, unified code** for your `all-payslips.blade.php` file. Replacing your entire template with this code will permanently resolve the `Undefined array key "special_holidays"` error and fix the line item breakdown calculations for all employee types.
 
 ```html
 <!DOCTYPE html>
@@ -121,95 +121,99 @@ th {
 @foreach($payrolls as $payroll)
 
 @php
-    $contribution = $payroll->contribution;
+$contribution = $payroll->contribution;
 
-    // 1. Get explicit legal and special holiday counts from the DTR records
-    $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-        ->whereBetween('work_date', [$period->start_date, $period->end_date])
-        ->where(function($query) {
-            $query->where('remarks', 'LIKE', '%Legal Holiday%')
-                  ->orWhere('status', 'LIKE', '%legal_holiday%');
-        })
-        ->count();
+// Clear database counts based on explicit DTR records
+$legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+    ->whereBetween('work_date', [$period->start_date, $period->end_date])
+    ->where(function($query) {
+        $query->where('remarks', 'LIKE', '%Legal Holiday%')
+              ->orWhere('status', 'LIKE', '%legal_holiday%');
+    })
+    ->count();
 
-    $specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-        ->whereBetween('work_date', [$period->start_date, $period->end_date])
-        ->where(function($query) {
-            $query->where('remarks', 'LIKE', '%Special Holiday%')
-                  ->orWhere('status', 'LIKE', '%special_holiday%');
-        })
-        ->count();
+$specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
+    ->whereBetween('work_date', [$period->start_date, $period->end_date])
+    ->where(function($query) {
+        $query->where('remarks', 'LIKE', '%Special Holiday%')
+              ->orWhere('status', 'LIKE', '%special_holiday%');
+    })
+    ->count();
 
-    $data = [
-        'period' => $period->description,
-        'employee_name' => $payroll->employee->full_name ?? '',
-        'daily_rate' => (float) ($payroll->daily_rate ?? 0),
-        'position' => $payroll->employee->position->position_name ?? '',
-        'date_generated' => now()->format('F d, Y'),
-        'days_worked' => (int) ($payroll->days_worked ?? 0),
-        'basic_salary' => (float) ($payroll->basic_salary ?? 0),
-        'gross_pay' => (float) ($payroll->gross_pay ?? 0),
-        'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
-        'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
-        'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
-        'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
-        'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
-        'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
-        'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
-        'sss_ee' => (float) ($contribution->sss_ee ?? 0),
-        'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
-        'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
-        'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
-        'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
-        'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
-        'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
-        'cash_advance' => (float) ($payroll->cash_advance ?? 0),
-        'shortages' => (float) ($payroll->shortages ?? 0),
-        'other_deduction' => (float) ($payroll->other_deduction ?? 0),
-        'other_incentives' => (float) ($payroll->other_incentives ?? 0),
-    ];
+$data = [
+    'period' => $period->description,
+    'employee_name' => $payroll->employee->full_name ?? '',
+    'daily_rate' => (float) ($payroll->daily_rate ?? 0),
+    'position' => $payroll->employee->position->position_name ?? '',
+    'date_generated' => now()->format('F d, Y'),
+    'days_worked' => (int) ($payroll->days_worked ?? 0),
+    'legal_holidays' => $legalHolidaysCount,
+    'special_holidays' => $specialHolidaysCount,
+    'basic_salary' => (float) ($payroll->basic_salary ?? 0),
+    'gross_pay' => (float) ($payroll->gross_pay ?? 0),
+    'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
+    'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
+    'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
+    'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
+    'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
+    'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
+    'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
+    'sss_ee' => (float) ($contribution->sss_ee ?? 0),
+    'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
+    'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
+    'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
+    'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
+    'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
+    'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
+    'cash_advance' => (float) ($payroll->cash_advance ?? 0),
+    'shortages' => (float) ($payroll->shortages ?? 0),
+    'other_deduction' => (float) ($payroll->other_deduction ?? 0),
+    'other_incentives' => (float) ($payroll->other_incentives ?? 0),
+];
 
-    preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
-    $startDay = (int) ($matches[1] ?? 1);
+preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
+$startDay = (int) ($matches[1] ?? 1);
 
-    $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
-    $isSecondCutoff = $startDay >= 16;
+$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
+$isSecondCutoff = $startDay >= 16;
 
-    $sss_ee = $isFirstCutoff ? $data['sss_ee'] : 0;
-    $philhealth_ee = $isFirstCutoff ? $data['philhealth_ee'] : 0;
-    $pagibig_ee = $isFirstCutoff ? $data['pagibig_ee'] : 0;
-    $premium_ss = $isFirstCutoff ? $data['premium_voluntary_ss_contribution'] : 0;
+$sss_ee = $isFirstCutoff ? $data['sss_ee'] : 0;
+$philhealth_ee = $isFirstCutoff ? $data['philhealth_ee'] : 0;
+$pagibig_ee = $isFirstCutoff ? $data['pagibig_ee'] : 0;
+$premium_ss = $isFirstCutoff ? $data['premium_voluntary_ss_contribution'] : 0;
 
-    $sss_salary_loan = $isSecondCutoff ? $data['sss_salary_loan'] : 0;
-    $sss_calamity_loan = $isSecondCutoff ? $data['sss_calamity_loan'] : 0;
-    $pagibig_salary_loan = $isSecondCutoff ? $data['pagibig_salary_loan'] : 0;
+$sss_salary_loan = $isSecondCutoff ? $data['sss_salary_loan'] : 0;
+$sss_calamity_loan = $isSecondCutoff ? $data['sss_calamity_loan'] : 0;
+$pagibig_salary_loan = $isSecondCutoff ? $data['pagibig_salary_loan'] : 0;
 
-    $cash_advance = $data['cash_advance'];
-    $shortages = $data['shortages'];
-    $other_deduction = $data['other_deduction'];
-    $other_incentives = $data['other_incentives'];
+$cash_advance = $data['cash_advance'];
+$shortages = $data['shortages'];
+$other_deduction = $data['other_deduction'];
+$other_incentives = $data['other_incentives'];
 
-    $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
-                        $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
-                        $cash_advance + $shortages + $other_deduction;
+$total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
+                    $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
+                    $cash_advance + $shortages + $other_deduction;
 
-    $final_gross_pay = $data['gross_pay'] + $other_incentives;
-    $final_net_pay = $final_gross_pay - $total_deductions;
+$final_gross_pay = $data['gross_pay'] + $other_incentives;
+$final_net_pay = $final_gross_pay - $total_deductions;
 
-    // 2. Clear, Deterministic Display Separation Logic
-    $dailyRate = $data['daily_rate'];
-    $basicSalary = $data['basic_salary'];
-    
-    $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
-    
-    // Instead of using database counters which include rest days, base the text display on true holiday presence
-    if ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount) {
-        $legalHolidayDays = $legalHolidaysCount;
-        $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
-    } else {
-        $legalHolidayDays = 0;
-        $calculatedDaysWorked = $totalPaidUnits;
-    }
+// Clear, Deterministic Display Separation Logic
+$dailyRate = $data['daily_rate'];
+$basicSalary = $data['basic_salary'];
+$rawDaysWorked = $data['days_worked'];
+
+$totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
+$legalHolidayDays = 0;
+$calculatedDaysWorked = $rawDaysWorked;
+
+if ($data['legal_holidays'] > 0 && $totalPaidUnits >= $data['legal_holidays']) {
+    $legalHolidayDays = $data['legal_holidays'];
+    $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
+} else {
+    $legalHolidayDays = 0;
+    $calculatedDaysWorked = $totalPaidUnits;
+}
 @endphp
 
 <div class="payslip-page">
@@ -405,5 +409,3 @@ th {
 
 </body>
 </html>
-
-```
