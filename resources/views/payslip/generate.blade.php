@@ -1,3 +1,8 @@
+The error happens because the code variable declaration block was split. The variable `$sss_ee` was defined *after* the cutoff conditional statements used it.
+
+Here is the fully fixed, integrated, and clean **Blade template** file. Replacing your entire file with this will resolve the `Undefined variable` error and accurately separate the Regular Days and Legal Holiday Credit.
+
+```html
 <!DOCTYPE html>
 <html>
 <head>
@@ -44,36 +49,49 @@ th { background-color: #f2f2f2; font-weight: bold; }
 </table>
 
 @php
-    // Other values
+    // 1. Determine cutoff from period string like "March 16-31, 2026"
+    preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
+    $startDay = $matches[1] ?? 1;
+    $startDay = (int) $startDay;
+
+    $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
+    $isSecondCutoff = $startDay >= 16;
+
+    // 2. Conditional contributions
+    $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
+    $philhealth_ee = $isFirstCutoff ? ($data['philhealth_ee'] ?? 0) : 0;
+    $pagibig_ee = $isFirstCutoff ? ($data['pagibig_ee'] ?? 0) : 0;
+    $premium_ss = $isFirstCutoff ? ($data['premium_voluntary_ss_contribution'] ?? 0) : 0;
+
+    $sss_salary_loan = $isSecondCutoff ? ($data['sss_salary_loan'] ?? 0) : 0;
+    $sss_calamity_loan = $isSecondCutoff ? ($data['sss_calamity_loan'] ?? 0) : 0;
+    $pagibig_salary_loan = $isSecondCutoff ? ($data['pagibig_salary_loan'] ?? 0) : 0;
+
+    // 3. Other base values
     $cash_advance = $data['cash_advance'] ?? 0;
     $shortages = $data['shortages'] ?? 0;
     $other_deduction = $data['other_deduction'] ?? 0;
     $other_incentives = $data['other_incentives'] ?? 0;
 
-    // Total deductions
+    // 4. Calculations for totals
     $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss
                         + $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan
                         + $cash_advance + $shortages + $other_deduction;
 
-    // Final gross and net
     $final_gross_pay = ($data['gross_pay'] ?? 0) + $other_incentives;
     $final_net_pay = $final_gross_pay - $total_deductions;
 
-    /**
-     * FIXED DISPLAY LOGIC FOR THE PAYSLIP DISPLAY
-     * Uses actual DTR day counts from the backend to prevent math grouping errors
-     */
+    // 5. Fixed Holiday Breakdown Logic
     $dailyRate = $data['daily_rate'] ?? 0;
     $basicSalary = $data['basic_salary'] ?? 0;
-    $rawDaysWorked = $data['days_worked'] ?? 0; // This is 14 for Leobert
+    $rawDaysWorked = $data['days_worked'] ?? 0; 
 
     $calculatedDaysWorked = $rawDaysWorked;
     $legalHolidayDays = 0;
 
     if ($dailyRate > 0) {
-        $totalPaidUnits = (int)round($basicSalary / $dailyRate); // e.g., 9000 / 600 = 15 units paid
+        $totalPaidUnits = (int)round($basicSalary / $dailyRate); 
         
-        // If paid units are greater than actual days on duty, a holiday premium was added
         if ($totalPaidUnits > $rawDaysWorked && $rawDaysWorked > 0) {
             $legalHolidayDays = $totalPaidUnits - $rawDaysWorked; 
             $calculatedDaysWorked = $rawDaysWorked - $legalHolidayDays;
