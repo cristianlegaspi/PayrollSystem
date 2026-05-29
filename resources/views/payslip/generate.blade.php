@@ -63,15 +63,16 @@ th { background-color: #f2f2f2; font-weight: bold; }
     $basicSalary = (float)($data['basic_salary'] ?? 0);
     $legalHolidaysCount = (int)($data['legal_holidays'] ?? 0);
     
-    $totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
+    // Calculate total days directly from basic salary and daily rate
+    $totalPaidDays = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
     
-    // Explicit label interception
-    if ($totalPaidUnits == 15 || ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount)) {
-        $legalHolidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
-        $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
+    // Explicit label interception for remarks row mapping
+    if ($totalPaidDays == 15 || ($legalHolidaysCount > 0 && $totalPaidDays >= $legalHolidaysCount)) {
+        $holidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
+        $calculatedDaysWorked = $totalPaidDays - $holidayDays;
     } else {
-        $legalHolidayDays = 0;
-        $calculatedDaysWorked = $totalPaidUnits > 0 ? $totalPaidUnits : 14;
+        $holidayDays = 0;
+        $calculatedDaysWorked = $totalPaidDays > 0 ? $totalPaidDays : 14;
     }
 @endphp
 
@@ -101,16 +102,18 @@ th { background-color: #f2f2f2; font-weight: bold; }
 
     <tr>
         <td>
-            Basic Salary (
-            {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }}
-            @if($legalHolidayDays > 0)
-                + {{ $legalHolidayDays }} Legal Holiday Credit Credited
+            Basic Salary + Holidays ({{ $totalPaidDays }}{{ $totalPaidDays != 1 ? 's' : '' }})
+            @if($holidayDays > 0)
+                <br>
+                <span style="font-size: 8px; color: #666; font-style: italic;">
+                    *Remarks: Includes {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }} and {{ $holidayDays }} Holiday Credit{{ $holidayDays != 1 ? 's' : '' }}
+                </span>
             @endif
-            )
         </td>
-        <td class="right">PHP {{ number_format($basicSalary, 2) }}</td>
+        <td class="right">
+            PHP {{ number_format($data['basic_salary'], 2) }}
+        </td>
     </tr>
-
     <tr>
         <td>Undertime Deduction (PHP {{ number_format(($dailyRate / 8), 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)</td>
         <td class="right">PHP {{ number_format($data['undertime_deduction'] ?? 0, 2) }}</td>
