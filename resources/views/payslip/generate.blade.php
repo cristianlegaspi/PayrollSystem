@@ -44,24 +44,6 @@ th { background-color: #f2f2f2; font-weight: bold; }
 </table>
 
 @php
-    // Determine cutoff from period string like "March 16-31, 2026"
-    preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
-    $startDay = $matches[1] ?? 1;
-    $startDay = (int) $startDay;
-
-    $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
-    $isSecondCutoff = $startDay >= 16;
-
-    // Conditional contributions
-    $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
-    $philhealth_ee = $isFirstCutoff ? ($data['philhealth_ee'] ?? 0) : 0;
-    $pagibig_ee = $isFirstCutoff ? ($data['pagibig_ee'] ?? 0) : 0;
-    $premium_ss = $isFirstCutoff ? ($data['premium_voluntary_ss_contribution'] ?? 0) : 0;
-
-    $sss_salary_loan = $isSecondCutoff ? ($data['sss_salary_loan'] ?? 0) : 0;
-    $sss_calamity_loan = $isSecondCutoff ? ($data['sss_calamity_loan'] ?? 0) : 0;
-    $pagibig_salary_loan = $isSecondCutoff ? ($data['pagibig_salary_loan'] ?? 0) : 0;
-
     // Other values
     $cash_advance = $data['cash_advance'] ?? 0;
     $shortages = $data['shortages'] ?? 0;
@@ -78,26 +60,26 @@ th { background-color: #f2f2f2; font-weight: bold; }
     $final_net_pay = $final_gross_pay - $total_deductions;
 
     /**
-     * DYNAMIC SEPARATION LOGIC FOR THE PAYSLIP DISPLAY
-     * Derives exact Regular Days and Holiday Credits dynamically based on payout value
+     * FIXED DISPLAY LOGIC FOR THE PAYSLIP DISPLAY
+     * Uses actual DTR day counts from the backend to prevent math grouping errors
      */
     $dailyRate = $data['daily_rate'] ?? 0;
     $basicSalary = $data['basic_salary'] ?? 0;
-    $rawDaysWorked = $data['days_worked'] ?? 0;
+    $rawDaysWorked = $data['days_worked'] ?? 0; // This is 14 for Leobert
 
     $calculatedDaysWorked = $rawDaysWorked;
     $legalHolidayDays = 0;
 
     if ($dailyRate > 0) {
-        $totalPaidDays = (int)round($basicSalary / $dailyRate);
+        $totalPaidUnits = (int)round($basicSalary / $dailyRate); // e.g., 9000 / 600 = 15 units paid
         
-        // If the calculated total days do not equal 15, isolate 1 day to represent the Legal Holiday
-        if ($totalPaidDays < 15 && $totalPaidDays > 0) {
-            $legalHolidayDays = 1;
-            $calculatedDaysWorked = $totalPaidDays - $legalHolidayDays;
+        // If paid units are greater than actual days on duty, a holiday premium was added
+        if ($totalPaidUnits > $rawDaysWorked && $rawDaysWorked > 0) {
+            $legalHolidayDays = $totalPaidUnits - $rawDaysWorked; 
+            $calculatedDaysWorked = $rawDaysWorked - $legalHolidayDays;
         } else {
             $legalHolidayDays = 0;
-            $calculatedDaysWorked = $totalPaidDays;
+            $calculatedDaysWorked = $totalPaidUnits;
         }
     }
 @endphp
