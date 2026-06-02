@@ -8,8 +8,7 @@
         <x-filament::input
             type="number"
             :value="$currentValue"
-            {{-- Proportional layout settings: matches standard financial text-inputs --}}
-            class="text-right w-full block font-mono font-medium px-2 py-1 text-[13px] tracking-tight bg-transparent [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:ring-0"
+            class="text-right w-full block font-mono px-2 py-1 text-xs [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none focus:ring-0 bg-transparent"
             wire:change="$set('overrides.{{ $record->id }}.{{ $monthNumber }}', $event.target.value)"
         />
     </x-filament::input.wrapper>

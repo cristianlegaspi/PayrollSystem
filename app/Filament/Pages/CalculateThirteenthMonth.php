@@ -161,7 +161,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             ->label(ucfirst($monthName))
             ->alignEnd()
             ->extraAttributes([
-                'style' => 'width: 85px !important; min-width: 85px !important; max-width: 85px !important;'
+                'style' => 'width: 80px !important; min-width: 80px !important; max-width: 80px !important;'
             ])
             ->view('filament.tables.columns.inline-matrix-input', [
                 'monthNumber' => $monthNumber

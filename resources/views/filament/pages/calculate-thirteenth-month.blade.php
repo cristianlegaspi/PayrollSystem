@@ -1,5 +1,5 @@
 <x-filament-panels::page>
-    {{-- Refined Grid Blueprint Styles --}}
+    {{-- High-End Financial Grid Layout Blueprint --}}
     <style>
         .fi-ta-content {
             overflow-x: auto !important;
@@ -13,30 +13,35 @@
         }
         /* Lock Month headers and row cells together perfectly */
         .fi-ta-table th, .fi-ta-table td {
-            width: 85px !important;
-            min-width: 85px !important;
-            max-width: 85px !important;
-            padding: 0.5rem 0.25rem !important;
+            width: 80px !important;
+            min-width: 80px !important;
+            max-width: 80px !important;
+            padding: 0.5rem 0.2rem !important;
             vertical-align: middle !important;
         }
-        /* Sticky Employee name column header & tracking cell stays wide */
+        /* Sticky Employee Name Column stays wider to prevent text overlapping */
         .fi-ta-table th:first-child, .fi-ta-table td:first-child {
-            width: 200px !important;
-            min-width: 200px !important;
-            max-width: 200px !important;
+            width: 240px !important;
+            min-width: 240px !important;
+            max-width: 240px !important;
             padding-left: 1rem !important;
+            text-align: left !important;
         }
-        /* Financial Calculation Columns at the end */
+        /* Financial Calculation Summary Columns at the end */
         .fi-ta-table th:nth-last-child(-n+2), .fi-ta-table td:nth-last-child(-n+2) {
-            width: 135px !important;
-            min-width: 135px !important;
-            max-width: 135px !important;
+            width: 140px !important;
+            min-width: 140px !important;
+            max-width: 140px !important;
             padding-right: 1rem !important;
         }
-        /* Aligning text column headers directly over inputs */
+        /* Aligns column header labels cleanly over the right-aligned inputs */
         .fi-ta-header-cell-label {
             justify-content: flex-end !important;
             width: 100%;
+        }
+        /* Keeps the employee name header label aligned left */
+        .fi-ta-table th:first-child .fi-ta-header-cell-label {
+            justify-content: flex-start !important;
         }
     </style>
 
