@@ -30,6 +30,8 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
     public $year;
     public int $dividend = 12;
+    
+    // Explicit array notation to guarantee wire:model binding isolation
     public array $overrides = [];
 
     public static function canAccess(): bool
@@ -65,11 +67,13 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             ->get();
 
         foreach ($employees as $employee) {
-            $savedOverrides = $employee->thirteenthMonthOverrides->keyBy('month');
-
             for ($m = 1; $m <= 12; $m++) {
-                if ($savedOverrides->has($m)) {
-                    $this->overrides[$employee->id][$m] = (float) $savedOverrides->get($m)->gross_pay_override;
+                $savedOverride = $employee->thirteenthMonthOverrides
+                    ->where('month', $m)
+                    ->first();
+
+                if ($savedOverride) {
+                    $this->overrides[$employee->id][$m] = (float) $savedOverride->gross_pay_override;
                 } else {
                     $dbAmount = $employee->payrolls
                         ->filter(fn ($p) =>
@@ -150,8 +154,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
      */
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
     {
-        // FIX: The field name itself must be uniquely explicitly evaluated using key mapping strings
-        return TextInputColumn::make("month_override_{$monthNumber}")
+        // FIX: We must specify a unique state path key structure string for the column loop 
+        // to prevent Livewire from overlapping row values in the UI DOM tree.
+        return TextInputColumn::make("overrides." . $monthNumber)
             ->label(ucfirst($monthName))
             ->alignEnd()
             ->type('number')
@@ -165,7 +170,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     FILTER_FLAG_ALLOW_FRACTION
                 );
 
-                // 1. Force state changes immediately down into your structural table overrides layer targeting the actual record ID
+                // 1. Force state changes explicitly down into your data storage layer using the model instance ID
                 ThirteenthMonthOverride::updateOrCreate(
                     [
                         'employee_id' => $record->id,
@@ -177,10 +182,10 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ]
                 );
 
-                // 2. Keep runtime application memory in perfect alignment matching the correct model ID index
+                // 2. Keep state arrays in perfect alignment
                 $this->overrides[$record->id][$monthNumber] = $cleanedValue;
 
-                // 3. Force table row math re-evaluation without throwing away user page focus
+                // 3. Force calculation updates down the Livewire cycle cleanly
                 return $cleanedValue;
             });
     }
