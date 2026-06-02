@@ -22,7 +22,7 @@
 <div class="header-title">
     <h3 style="margin:0; font-size:14px;">E.A OCAMPO ENTERPRISES</h3>
     <h4 style="margin:4px 0 0 0; font-size:11px;">13TH MONTH PAYROLL SUMMARY — CALENDAR YEAR {{ $year }}</h4>
-   <small style="color:#555;">Calculation Metric Basis: Total Gross Pay Earned Divided By {{ $dividend }}</small>
+    <small style="color:#555;">Calculation Metric Basis: Total Gross Pay Earned Divided By {{ $dividend }}</small>
 </div>
 
 <table>
@@ -41,9 +41,14 @@
             <tr>
                 <td class="text-left bold">{{ $emp['name'] }}</td>
                 @for($m = 1; $m <= 12; $m++)
-                    <td>{{ $emp['months'][$m] > 0 ? number_format($emp['months'][$m], 0) : '-' }}</td>
+                    <td>
+                        @php
+                            $monthVal = isset($emp['months'][$m]) ? (float)$emp['months'][$m] : 0;
+                        @endphp
+                        {{ $monthVal > 0 ? number_format($monthVal, 0) : '-' }}
+                    </td>
                 @endfor
-               <td class="bold">₱{{ number_format($emp['total_gross'], 2) }}</td>
+                <td class="bold">₱{{ number_format($emp['total_gross'], 2) }}</td>
                 <td class="bold" style="background-color: #fcfcfc;">₱{{ number_format($emp['thirteenth_pay'], 2) }}</td>
                 <td></td>
             </tr>
@@ -55,12 +60,12 @@
             @for($m = 1; $m <= 12; $m++)
                 <td>
                     @php 
-                        $monthlySum = array_sum(array_map(fn($e) => $e['months'][$m], $employees)); 
+                        $monthlySum = array_sum(array_map(fn($e) => (float)($e['months'][$m] ?? 0), $employees)); 
                     @endphp
                     {{ $monthlySum > 0 ? number_format($monthlySum, 0) : '-' }}
                 </td>
             @endfor
-           <td>₱{{ number_format($grand_totals['gross'], 2) }}</td>
+            <td>₱{{ number_format($grand_totals['gross'], 2) }}</td>
             <td>₱{{ number_format($grand_totals['thirteenth'], 2) }}</td>
             <td></td>
         </tr>
