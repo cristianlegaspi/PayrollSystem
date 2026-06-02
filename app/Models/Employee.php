@@ -65,4 +65,8 @@ class Employee extends Model
     {
         return $this->hasMany(Payroll::class);
     }
+    public function thirteenthMonthOverrides()
+    {
+        return $this->hasMany(ThirteenthMonthOverride::class);
+    }
 }
