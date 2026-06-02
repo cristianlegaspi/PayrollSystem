@@ -150,7 +150,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
      */
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
     {
-        // Use a clean, non-nested string for the column identification key
+        // FIX: The field name itself must be uniquely explicitly evaluated using key mapping strings
         return TextInputColumn::make("month_override_{$monthNumber}")
             ->label(ucfirst($monthName))
             ->alignEnd()
@@ -165,7 +165,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     FILTER_FLAG_ALLOW_FRACTION
                 );
 
-                // 1. Force state changes immediately down into your structural table overrides layer
+                // 1. Force state changes immediately down into your structural table overrides layer targeting the actual record ID
                 ThirteenthMonthOverride::updateOrCreate(
                     [
                         'employee_id' => $record->id,
@@ -177,7 +177,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ]
                 );
 
-                // 2. Keep runtime application memory in perfect alignment
+                // 2. Keep runtime application memory in perfect alignment matching the correct model ID index
                 $this->overrides[$record->id][$monthNumber] = $cleanedValue;
 
                 // 3. Force table row math re-evaluation without throwing away user page focus
