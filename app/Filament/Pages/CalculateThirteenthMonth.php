@@ -148,17 +148,16 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * REVISED: Fully isolated TextInputColumn linked exclusively to individual record IDs
+     * FIXED: Utilizing ->key() instead of ->name() to safely isolate inputs by record ID string keys
      */
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
     {
-        // REVISED FIX: We use a generic column string key identifier
         return TextInputColumn::make("month_override_{$monthNumber}")
             ->label(ucfirst($monthName))
             ->alignEnd()
             ->type('number')
-            // REVISED FIX: Forces Filament to bind state memory rules to an isolated, multi-dimensional array key matching the row model ID
-            ->name(fn (Employee $record) => "overrides.{$record->id}.{$monthNumber}")
+            // FIX: This forces Filament to give every single row text input its own specific layout identity marker string dynamically
+            ->key(fn (Employee $record) => "emp_{$record->id}_m_{$monthNumber}")
             ->state(fn (Employee $record) =>
                 $this->overrides[$record->id][$monthNumber] ?? 0
             )
@@ -169,7 +168,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     FILTER_FLAG_ALLOW_FRACTION
                 );
 
-                // 1. Write data exclusively to the selected employee record row
+                // 1. Write updates exclusively for this targeted employee model record
                 ThirteenthMonthOverride::updateOrCreate(
                     [
                         'employee_id' => $record->id,
@@ -181,7 +180,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ]
                 );
 
-                // 2. Keep state array tracking synchronized perfectly
+                // 2. Keep the live memory object structure in complete sync
                 $this->overrides[$record->id][$monthNumber] = $cleanedValue;
 
                 return $cleanedValue;
