@@ -7,7 +7,6 @@ use App\Models\Employee;
 use App\Models\ThirteenthMonthOverride;
 use Filament\Tables\Table;
 use Filament\Tables\Columns\TextColumn;
-use Filament\Tables\Columns\TextInputColumn;
 use Filament\Tables\Contracts\HasTable;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Forms\Contracts\HasForms;
@@ -15,6 +14,7 @@ use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Components\Select;
 use Filament\Actions\Action;
 use Carbon\Carbon;
+use Illuminate\Support\HtmlString;
 
 class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 {
@@ -31,7 +31,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public $year;
     public int $dividend = 12;
     
-    // Explicit array notation to guarantee wire:model binding isolation
+    // Explicit public array property containing your matrix state
     public array $overrides = [];
 
     public static function canAccess(): bool
@@ -73,7 +73,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->first();
 
                 if ($savedOverride) {
-                    $this->overrides[$employee->id][$m] = (float) $savedOverride->gross_pay_override;
+                    $this->overrides[$employee->id][$m] = $savedOverride->gross_pay_override;
                 } else {
                     $dbAmount = $employee->payrolls
                         ->filter(fn ($p) =>
@@ -83,10 +83,41 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         )
                         ->sum('gross_pay');
 
-                    $this->overrides[$employee->id][$m] = (float) ($dbAmount ?? 0);
+                    $this->overrides[$employee->id][$m] = $dbAmount ?? 0;
                 }
             }
         }
+    }
+
+    /**
+     * Triggered automatically by Livewire when any input element bound to the $overrides array updates via blur/change
+     */
+    public function updatedOverrides($value, $key)
+    {
+        // Key format parses out to: "employeeId.monthNumber" (e.g., "14.2")
+        $parts = explode('.', $key);
+        if (count($parts) !== 2) {
+            return;
+        }
+
+        $employeeId = (int) $parts[0];
+        $monthNumber = (int) $parts[1];
+        $cleanedValue = (float) filter_var($value, FILTER_SANITIZE_NUMBER_FLOAT, FILTER_FLAG_ALLOW_FRACTION);
+
+        // Update or create the database record exclusively for this targeted employee row instance
+        ThirteenthMonthOverride::updateOrCreate(
+            [
+                'employee_id' => $employeeId,
+                'year'        => $this->year,
+                'month'       => $monthNumber,
+            ],
+            [
+                'gross_pay_override' => $cleanedValue,
+            ]
+        );
+
+        // Sync back memory structure
+        $this->overrides[$employeeId][$monthNumber] = $cleanedValue;
     }
 
     public function table(Table $table): Table
@@ -111,19 +142,19 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         'class' => 'font-semibold sticky left-0 bg-white dark:bg-gray-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]'
                     ]),
 
-                // Monthly columns
-                $this->makeMonthlyColumn('jan', 1),
-                $this->makeMonthlyColumn('feb', 2),
-                $this->makeMonthlyColumn('mar', 3),
-                $this->makeMonthlyColumn('apr', 4),
-                $this->makeMonthlyColumn('may', 5),
-                $this->makeMonthlyColumn('jun', 6),
-                $this->makeMonthlyColumn('jul', 7),
-                $this->makeMonthlyColumn('aug', 8),
-                $this->makeMonthlyColumn('sep', 9),
-                $this->makeMonthlyColumn('oct', 10),
-                $this->makeMonthlyColumn('nov', 11),
-                $this->makeMonthlyColumn('dec', 12),
+                // Monthly custom interactive inputs
+                $this->makeMonthlyColumn('Jan', 1),
+                $this->makeMonthlyColumn('Feb', 2),
+                $this->makeMonthlyColumn('Mar', 3),
+                $this->makeMonthlyColumn('Apr', 4),
+                $this->makeMonthlyColumn('May', 5),
+                $this->makeMonthlyColumn('Jun', 6),
+                $this->makeMonthlyColumn('Jul', 7),
+                $this->makeMonthlyColumn('Aug', 8),
+                $this->makeMonthlyColumn('Sep', 9),
+                $this->makeMonthlyColumn('Oct', 10),
+                $this->makeMonthlyColumn('Nov', 11),
+                $this->makeMonthlyColumn('Dec', 12),
 
                 // Total Gross Pay
                 TextColumn::make('total_gross_earned')
@@ -150,43 +181,28 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * Fully editable reactive column updating database instances instantly on blur/change
+     * Builds an isolated, component-level data-bound input HTML template block
      */
-    protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
+    protected function makeMonthlyColumn(string $monthLabel, int $monthNumber): TextColumn
     {
-        // FIX: We must specify a unique state path key structure string for the column loop 
-        // to prevent Livewire from overlapping row values in the UI DOM tree.
-        return TextInputColumn::make("overrides." . $monthNumber)
-            ->label(ucfirst($monthName))
-            ->alignEnd()
-            ->type('number')
-            ->state(fn (Employee $record) =>
-                $this->overrides[$record->id][$monthNumber] ?? 0
-            )
-            ->updateStateUsing(function (Employee $record, $state) use ($monthNumber) {
-                $cleanedValue = (float) filter_var(
-                    $state,
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
-                );
-
-                // 1. Force state changes explicitly down into your data storage layer using the model instance ID
-                ThirteenthMonthOverride::updateOrCreate(
-                    [
-                        'employee_id' => $record->id,
-                        'year'        => $this->year,
-                        'month'       => $monthNumber,
-                    ],
-                    [
-                        'gross_pay_override' => $cleanedValue,
-                    ]
-                );
-
-                // 2. Keep state arrays in perfect alignment
-                $this->overrides[$record->id][$monthNumber] = $cleanedValue;
-
-                // 3. Force calculation updates down the Livewire cycle cleanly
-                return $cleanedValue;
+        // Using a plain text column to inject custom standalone HTML inputs explicitly mapped to the true employee primary key
+        return TextColumn::make("month_{$monthNumber}")
+            ->label($monthLabel)
+            ->alignCenter()
+            ->html()
+            ->formatStateUsing(function (Employee $record) use ($monthNumber) {
+                $currentValue = $this->overrides[$record->id][$monthNumber] ?? 0;
+                
+                // Native tailwind wrapper mirroring Filament's form element style guides safely isolated via exact record binding keys
+                return new HtmlString('
+                    <input 
+                        type="number" 
+                        value="' . $currentValue . '"
+                        wire:model.lazy="overrides.' . $record->id . '.' . $monthNumber . '"
+                        class="w-24 block text-right border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:border-primary-500 focus:ring-primary-500 rounded-lg shadow-sm sm:text-sm p-1"
+                        style="min-width: 90px;"
+                    />
+                ');
             });
     }
 
