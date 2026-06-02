@@ -14,6 +14,7 @@ use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Components\Select;
 use Filament\Actions\Action;
+use Filament\Notifications\Notification;
 use Carbon\Carbon;
 
 class CalculateThirteenthMonth extends Page implements HasTable, HasForms
@@ -54,12 +55,12 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public function preloadDatabaseValues()
     {
         $employees = Employee::whereHas('payrolls.period', function ($query) {
-                $query->whereYear('start_date', $this->year);
-            })
+            $query->whereYear('start_date', $this->year);
+        })
             ->orWhereHas('thirteenthMonthOverrides', function ($query) {
                 $query->where('year', $this->year);
             })
-            ->with(['payrolls.period', 'thirteenthMonthOverrides' => function($q) {
+            ->with(['payrolls.period', 'thirteenthMonthOverrides' => function ($q) {
                 $q->where('year', $this->year);
             }])
             ->get();
@@ -74,10 +75,11 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     $this->overrides[$employee->id][$m] = (float) $savedOverride->gross_pay_override;
                 } else {
                     $dbAmount = $employee->payrolls
-                        ->filter(fn ($p) =>
+                        ->filter(
+                            fn($p) =>
                             $p->period &&
-                            Carbon::parse($p->period->start_date)->month === $m &&
-                            Carbon::parse($p->period->start_date)->year == $this->year
+                                Carbon::parse($p->period->start_date)->month === $m &&
+                                Carbon::parse($p->period->start_date)->year == $this->year
                         )
                         ->sum('gross_pay');
 
@@ -90,7 +92,6 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public function table(Table $table): Table
     {
         return $table
-            // EXPLICIT FIXED QUERY: Pulling direct, unambiguous primary key columns to protect DOM state alignment
             ->query(
                 Employee::query()
                     ->select('employees.*')
@@ -131,18 +132,20 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->money('PHP')
                     ->alignEnd()
                     ->weight('bold')
-                    ->state(fn (Employee $record) =>
+                    ->state(
+                        fn(Employee $record) =>
                         $this->calculateEmployeeTotalGross($record->id)
                     ),
 
                 // 13th Month Calculator
                 TextColumn::make('thirteenth_month_pay')
-                    ->label(fn () => "13th Month (÷{$this->dividend})")
+                    ->label(fn() => "13th Month (÷{$this->dividend})")
                     ->money('PHP')
                     ->color('success')
                     ->weight('bold')
                     ->alignEnd()
-                    ->state(fn (Employee $record) =>
+                    ->state(
+                        fn(Employee $record) =>
                         $this->calculateEmployeeTotalGross($record->id) / $this->dividend
                     ),
             ])
@@ -150,53 +153,31 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * FIXED & REVISED: Native TextInputColumn using closure state routing to enforce true model row separation
+     * Renders an isolated custom text column containing native layout block input views
      */
-    protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
+    protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextColumn
     {
-        return TextInputColumn::make("month_override_{$monthNumber}")
+        return TextColumn::make("month_override_{$monthName}")
             ->label(ucfirst($monthName))
             ->alignEnd()
-            ->type('number')
-            // Using contextual evaluation to accurately pull live data from memory based on the specific row record instance
-            ->getStateUsing(fn (Employee $record) => 
-                $this->overrides[$record->id][$monthNumber] ?? 0
-            )
-            ->updateStateUsing(function (Employee $record, $state) use ($monthNumber) {
-                $cleanedValue = (float) filter_var(
-                    $state,
-                    FILTER_SANITIZE_NUMBER_FLOAT,
-                    FILTER_FLAG_ALLOW_FRACTION
-                );
-
-                // FIXED: Explicitly saves the data directly using the authentic model ID property context
-                ThirteenthMonthOverride::updateOrCreate(
-                    [
-                        'employee_id' => $record->id,
-                        'year'        => $this->year,
-                        'month'       => $monthNumber,
-                    ],
-                    [
-                        'gross_pay_override' => $cleanedValue,
-                    ]
-                );
-
-                // Update the memory array map for this exact employee row
-                $this->overrides[$record->id][$monthNumber] = $cleanedValue;
-
-                return $cleanedValue;
-            });
+            ->extraAttributes([
+                'style' => 'width: 85px !important; min-width: 85px !important; max-width: 85px !important;'
+            ])
+            ->view('filament.tables.columns.inline-matrix-input', [
+                'monthNumber' => $monthNumber
+            ]);
     }
+
 
     public function calculateEmployeeTotalGross(int $employeeId): float
     {
         if (! isset($this->overrides[$employeeId])) {
-            return 0;
+            return 0.0;
         }
 
-        return array_sum($this->overrides[$employeeId]);
+        // Array map forces standard numeric conversion before summing values together
+        return array_sum(array_map('floatval', $this->overrides[$employeeId]));
     }
-
     public function getGrandTotals(): array
     {
         $grandTotalGross = 0;
@@ -213,8 +194,8 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public function getPrintData(): array
     {
         $employees = Employee::whereHas('payrolls.period', function ($query) {
-                $query->whereYear('start_date', $this->year);
-            })
+            $query->whereYear('start_date', $this->year);
+        })
             ->orWhereHas('thirteenthMonthOverrides', function ($query) {
                 $query->where('year', $this->year);
             })
@@ -241,6 +222,35 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     protected function getHeaderActions(): array
     {
         return [
+            // Save directly to database manually
+            Action::make('saveToDatabase')
+                ->label('Save to Database')
+                ->icon('heroicon-m-check-circle')
+                ->color('success')
+                ->requiresConfirmation()
+                ->action(function () {
+                    foreach ($this->overrides as $employeeId => $months) {
+                        foreach ($months as $monthNumber => $value) {
+                            ThirteenthMonthOverride::updateOrCreate(
+                                [
+                                    'employee_id' => $employeeId,
+                                    'year'        => $this->year,
+                                    'month'       => $monthNumber,
+                                ],
+                                [
+                                    'gross_pay_override' => (float) $value,
+                                ]
+                            );
+                        }
+                    }
+
+                    Notification::make()
+                        ->title('Success')
+                        ->body('All monthly gross pay adjustments saved successfully.')
+                        ->success()
+                        ->send();
+                }),
+
             Action::make('printSummary')
                 ->label('Print Summary')
                 ->icon('heroicon-m-printer')
@@ -281,7 +291,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 ->action(function (array $data) {
                     $this->year = $data['year'];
                     $this->dividend = (int) $data['dividend'];
-                    
+
                     $this->overrides = [];
                     $this->preloadDatabaseValues();
                     $this->resetTable();
