@@ -90,8 +90,10 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public function table(Table $table): Table
     {
         return $table
+            // EXPLICIT FIXED QUERY: Pulling direct, unambiguous primary key columns to protect DOM state alignment
             ->query(
                 Employee::query()
+                    ->select('employees.*')
                     ->whereHas('payrolls.period', function ($query) {
                         $query->whereYear('start_date', $this->year);
                     })
@@ -148,7 +150,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * FIXED: Utilizing ->key() instead of ->name() to safely isolate inputs by record ID string keys
+     * FIXED & REVISED: Native TextInputColumn using closure state routing to enforce true model row separation
      */
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextInputColumn
     {
@@ -156,9 +158,8 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             ->label(ucfirst($monthName))
             ->alignEnd()
             ->type('number')
-            // FIX: This forces Filament to give every single row text input its own specific layout identity marker string dynamically
-            ->key(fn (Employee $record) => "emp_{$record->id}_m_{$monthNumber}")
-            ->state(fn (Employee $record) =>
+            // Using contextual evaluation to accurately pull live data from memory based on the specific row record instance
+            ->getStateUsing(fn (Employee $record) => 
                 $this->overrides[$record->id][$monthNumber] ?? 0
             )
             ->updateStateUsing(function (Employee $record, $state) use ($monthNumber) {
@@ -168,7 +169,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     FILTER_FLAG_ALLOW_FRACTION
                 );
 
-                // 1. Write updates exclusively for this targeted employee model record
+                // FIXED: Explicitly saves the data directly using the authentic model ID property context
                 ThirteenthMonthOverride::updateOrCreate(
                     [
                         'employee_id' => $record->id,
@@ -180,7 +181,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ]
                 );
 
-                // 2. Keep the live memory object structure in complete sync
+                // Update the memory array map for this exact employee row
                 $this->overrides[$record->id][$monthNumber] = $cleanedValue;
 
                 return $cleanedValue;
