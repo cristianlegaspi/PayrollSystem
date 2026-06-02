@@ -108,8 +108,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->label('Employee Name')
                     ->searchable()
                     ->sortable()
+                    // Extra horizontal room with text-ellipsis protection keeps long names readable
                     ->extraAttributes([
-                        'class' => 'font-semibold sticky left-0 bg-white dark:bg-gray-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]'
+                        'class' => 'font-semibold sticky left-0 bg-white dark:bg-gray-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-64 min-w-[240px] truncate max-w-[280px]'
                     ]),
 
                 // Monthly columns
@@ -132,6 +133,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->money('PHP')
                     ->alignEnd()
                     ->weight('bold')
+                    ->extraAttributes([
+                        'class' => 'w-36 min-w-[140px] font-mono'
+                    ])
                     ->state(
                         fn(Employee $record) =>
                         $this->calculateEmployeeTotalGross($record->id)
@@ -144,6 +148,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->color('success')
                     ->weight('bold')
                     ->alignEnd()
+                    ->extraAttributes([
+                        'class' => 'w-36 min-w-[140px] font-mono'
+                    ])
                     ->state(
                         fn(Employee $record) =>
                         $this->calculateEmployeeTotalGross($record->id) / $this->dividend
@@ -153,22 +160,24 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     }
 
     /**
-     * Renders an isolated custom text column containing native layout block input views
+     * Generates uniform columns using clear Tailwind spacing layouts
      */
-    protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextColumn
-    {
-        return TextColumn::make("month_override_{$monthName}")
-            ->label(ucfirst($monthName))
-            ->alignEnd()
-            ->extraAttributes([
-                'style' => 'width: 80px !important; min-width: 80px !important; max-width: 80px !important;'
-            ])
-            ->view('filament.tables.columns.inline-matrix-input', [
-                'monthNumber' => $monthNumber
-            ]);
-    }
-
-
+  /**
+ * Generates uniform columns using clear Tailwind spacing layouts
+ */
+protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextColumn
+{
+    return TextColumn::make("month_override_{$monthName}")
+        ->label(ucfirst($monthName))
+        ->alignEnd()
+        // Tailwind horizontal scaling logic: sets flexible boundaries for smooth fluid width tracking
+        ->extraAttributes([
+            'class' => 'w-24 min-w-[95px] max-w-[120px] sm:w-28 md:w-32'
+        ])
+        ->view('filament.tables.columns.inline-matrix-input', [
+            'monthNumber' => $monthNumber
+        ]);
+}
     public function calculateEmployeeTotalGross(int $employeeId): float
     {
         if (! isset($this->overrides[$employeeId])) {

@@ -1,45 +1,21 @@
 <x-filament-panels::page>
-    {{-- High-End Financial Grid Layout Blueprint --}}
+    {{-- Fluid Table Core Responsive Baseline Style Fixes --}}
     <style>
         .fi-ta-content {
             overflow-x: auto !important;
-            position: relative;
+            -webkit-overflow-scrolling: touch;
         }
         .fi-ta-table {
-            table-layout: fixed !important; 
+            table-layout: auto !important; /* Forces layout tracking engines to prioritize cell min-widths */
             width: max-content !important;
             min-width: 100% !important;
-            border-collapse: separate !important;
         }
-        /* Lock Month headers and row cells together perfectly */
-        .fi-ta-table th, .fi-ta-table td {
-            width: 80px !important;
-            min-width: 80px !important;
-            max-width: 80px !important;
-            padding: 0.5rem 0.2rem !important;
-            vertical-align: middle !important;
-        }
-        /* Sticky Employee Name Column stays wider to prevent text overlapping */
-        .fi-ta-table th:first-child, .fi-ta-table td:first-child {
-            width: 240px !important;
-            min-width: 240px !important;
-            max-width: 240px !important;
-            padding-left: 1rem !important;
-            text-align: left !important;
-        }
-        /* Financial Calculation Summary Columns at the end */
-        .fi-ta-table th:nth-last-child(-n+2), .fi-ta-table td:nth-last-child(-n+2) {
-            width: 140px !important;
-            min-width: 140px !important;
-            max-width: 140px !important;
-            padding-right: 1rem !important;
-        }
-        /* Aligns column header labels cleanly over the right-aligned inputs */
+        /* Standardizes table header elements with input box alignments */
         .fi-ta-header-cell-label {
             justify-content: flex-end !important;
             width: 100%;
+            padding-right: 0.25rem;
         }
-        /* Keeps the employee name header label aligned left */
         .fi-ta-table th:first-child .fi-ta-header-cell-label {
             justify-content: flex-start !important;
         }
