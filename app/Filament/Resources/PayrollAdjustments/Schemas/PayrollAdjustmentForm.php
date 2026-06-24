@@ -47,6 +47,7 @@ class PayrollAdjustmentForm
                             ->label('Payroll Period / Cut-off')
                             ->options(function () {
                                 return PayrollPeriod::query()
+                                    ->where('status', 'open')
                                     ->orderByDesc('id')
                                     ->get()
                                     ->mapWithKeys(function (PayrollPeriod $period) {
@@ -106,11 +107,6 @@ class PayrollAdjustmentForm
 
     protected static function payrollPeriodLabel(PayrollPeriod $period): string
     {
-        /**
-         * This supports common payroll period column names.
-         * It will not cause SQL error because we are not using pluck('name', 'id').
-         */
-
         $start = $period->start_date
             ?? $period->date_from
             ?? $period->period_start
@@ -134,6 +130,7 @@ class PayrollAdjustmentForm
             ?? $period->cut_off
             ?? $period->cutoff
             ?? $period->title
+            ?? $period->description
             ?? null;
 
         if ($label) {
