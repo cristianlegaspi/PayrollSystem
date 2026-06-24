@@ -83,8 +83,8 @@ class PayrollsTable
             ])
 
             ->recordActions([
-                ViewAction::make(),
-                    EditAction::make()
+                ViewAction::make()
+                    // EditAction::make()
             ->visible(fn ($record) =>
                 $record->payrollPeriod?->status === 'Finalized'
                 && $record->payrollPeriod?->remarks === 'Pending'

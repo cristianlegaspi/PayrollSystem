@@ -32,7 +32,32 @@ class Payroll extends Model
         'undertime_deduction',
         'rest_day_ot_hours',
         'rest_day_ot_salary',
+    ];
 
+    protected $casts = [
+        'days_worked' => 'decimal:2',
+        'days_absent' => 'decimal:2',
+        'undertime_hours' => 'decimal:2',
+        'overtime_hours' => 'decimal:2',
+        'night_diff_hours' => 'decimal:2',
+        'night_diff_ot_hours' => 'decimal:2',
+        'daily_rate' => 'decimal:2',
+        'basic_salary' => 'decimal:2',
+        'overtime_salary' => 'decimal:2',
+        'night_diff_salary' => 'decimal:2',
+        'night_diff_ot_salary' => 'decimal:2',
+        'gross_pay' => 'decimal:2',
+        'total_deductions' => 'decimal:2',
+        'cash_advance' => 'decimal:2',
+        'shortages' => 'decimal:2',
+        'other_deduction' => 'decimal:2',
+        'other_incentives' => 'decimal:2',
+        'net_pay' => 'decimal:2',
+        'sunday_ot_hours' => 'decimal:2',
+        'sunday_ot_salary' => 'decimal:2',
+        'undertime_deduction' => 'decimal:2',
+        'rest_day_ot_hours' => 'decimal:2',
+        'rest_day_ot_salary' => 'decimal:2',
     ];
 
     public function employee()
@@ -45,6 +70,28 @@ class Payroll extends Model
         return $this->belongsTo(PayrollPeriod::class);
     }
 
+    public function period()
+    {
+        return $this->belongsTo(PayrollPeriod::class, 'payroll_period_id');
+    }
+
+    public function contribution()
+    {
+        return $this->hasOne(Contribution::class, 'employee_id', 'employee_id');
+    }
+
+    public function payrollAdjustment()
+    {
+        return $this->hasOne(PayrollAdjustment::class, 'employee_id', 'employee_id')
+            ->whereColumn('payroll_adjustments.payroll_period_id', 'payrolls.payroll_period_id');
+    }
+
+    public function payrollAdjustments()
+    {
+        return $this->hasMany(PayrollAdjustment::class, 'employee_id', 'employee_id')
+            ->whereColumn('payroll_adjustments.payroll_period_id', 'payrolls.payroll_period_id');
+    }
+
     public function getIsAbsentAttribute()
     {
         return $this->status === 'absent_without_pay';
@@ -55,28 +102,69 @@ class Payroll extends Model
         return in_array($this->status, ['on_duty', 'rest_day', 'legal_holiday']);
     }
 
-    public function contribution()
+    protected static function booted(): void
     {
-        // Assuming contribution table has employee_id as FK
-        return $this->hasOne(Contribution::class, 'employee_id', 'employee_id');
-    }
-
-    protected static function booted()
-    {
-        static::saving(function ($payroll) {
-
-            $cashAdvance = $payroll->cash_advance ?? 0;
-            $shortages = $payroll->shortages ?? 0;
-            $other_deduction = $payroll->other_deduction ?? 0;
-            $other_incentives = $payroll->other_incentives ?? 0;
-
-            $payroll->net_pay =
-                ($payroll->gross_pay + $other_incentives)
-                - ($payroll->total_deductions + $cashAdvance + $shortages + $other_deduction);
+        static::saving(function (Payroll $payroll) {
+            $payroll->syncAdjustmentsFromRecords();
+            $payroll->recalculateTotals();
         });
     }
-    public function period()
+
+    public function syncAdjustmentsFromRecords(): void
     {
-        return $this->belongsTo(PayrollPeriod::class, 'payroll_period_id');
+        if (! $this->employee_id || ! $this->payroll_period_id) {
+            return;
+        }
+
+        $totals = PayrollAdjustment::query()
+            ->where('employee_id', $this->employee_id)
+            ->where('payroll_period_id', $this->payroll_period_id)
+            ->selectRaw('
+                COALESCE(SUM(cash_advance), 0) as cash_advance,
+                COALESCE(SUM(shortages), 0) as shortages,
+                COALESCE(SUM(other_deduction), 0) as other_deduction,
+                COALESCE(SUM(other_incentives), 0) as other_incentives
+            ')
+            ->first();
+
+        $this->cash_advance = $totals->cash_advance ?? 0;
+        $this->shortages = $totals->shortages ?? 0;
+        $this->other_deduction = $totals->other_deduction ?? 0;
+        $this->other_incentives = $totals->other_incentives ?? 0;
+    }
+
+    public function recalculateTotals(): void
+    {
+        $basicSalary = (float) ($this->basic_salary ?? 0);
+        $overtimeSalary = (float) ($this->overtime_salary ?? 0);
+        $nightDiffSalary = (float) ($this->night_diff_salary ?? 0);
+        $nightDiffOtSalary = (float) ($this->night_diff_ot_salary ?? 0);
+        $sundayOtSalary = (float) ($this->sunday_ot_salary ?? 0);
+        $restDayOtSalary = (float) ($this->rest_day_ot_salary ?? 0);
+
+        $totalDeductions = (float) ($this->total_deductions ?? 0);
+        $undertimeDeduction = (float) ($this->undertime_deduction ?? 0);
+
+        $cashAdvance = (float) ($this->cash_advance ?? 0);
+        $shortages = (float) ($this->shortages ?? 0);
+        $otherDeduction = (float) ($this->other_deduction ?? 0);
+        $otherIncentives = (float) ($this->other_incentives ?? 0);
+
+        $this->gross_pay =
+            $basicSalary
+            + $overtimeSalary
+            + $nightDiffSalary
+            + $nightDiffOtSalary
+            + $sundayOtSalary
+            + $restDayOtSalary
+            + $otherIncentives;
+
+        $this->net_pay =
+            $this->gross_pay
+            - $totalDeductions
+            - $undertimeDeduction
+            - $cashAdvance
+            - $shortages
+            - $otherDeduction;
     }
 }
