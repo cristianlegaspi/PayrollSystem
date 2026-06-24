@@ -13,7 +13,7 @@ class PayrollAdjustmentPolicy
      */
     public function viewAny(User $user): bool
     {
-        return true;
+        return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -21,7 +21,7 @@ class PayrollAdjustmentPolicy
      */
     public function view(User $user, PayrollAdjustment $payrollAdjustment): bool
     {
-        return true;
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -29,7 +29,7 @@ class PayrollAdjustmentPolicy
      */
     public function create(User $user): bool
     {
-        return true;
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -37,7 +37,7 @@ class PayrollAdjustmentPolicy
      */
     public function update(User $user, PayrollAdjustment $payrollAdjustment): bool
     {
-        return true;
+        return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -45,7 +45,7 @@ class PayrollAdjustmentPolicy
      */
     public function delete(User $user, PayrollAdjustment $payrollAdjustment): bool
     {
-        return true;
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -53,7 +53,7 @@ class PayrollAdjustmentPolicy
      */
     public function restore(User $user, PayrollAdjustment $payrollAdjustment): bool
     {
-        return true;
+         return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 
     /**
@@ -61,6 +61,7 @@ class PayrollAdjustmentPolicy
      */
     public function forceDelete(User $user, PayrollAdjustment $payrollAdjustment): bool
     {
-        return true;
+        // return true;
+          return in_array($user->role->role_name, ['Admin', 'Super Admin', 'Owner']);
     }
 }
