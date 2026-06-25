@@ -60,7 +60,7 @@ class AdminPanelProvider extends PanelProvider
                   \App\Filament\Widgets\EmployeeOverview::class,
                    \App\Filament\Widgets\PayrollChart::class,
                    
-                    //  \App\Filament\Widgets\PayrollSummaryChart::class,
+                
             ])
             ->middleware([
                 EncryptCookies::class,

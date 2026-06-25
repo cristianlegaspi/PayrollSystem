@@ -105,7 +105,11 @@ class ListCashAdvances extends ListRecords
         ];
     }
 
-
-
-  
+    protected function getHeaderWidgets(): array
+{
+    return [
+       \App\Filament\Resources\CashAdvances\Widgets\CashAdvanceStatsOverview::class,
+    ];
+}
+ 
 }
