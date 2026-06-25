@@ -23,23 +23,23 @@ class ListEmployees extends ListRecords
         return [
             
 
-        Action::make('Generate Employee Report')
-            ->label('Generate Employee Report')
-            ->color('success')
-            ->form([
-        Select::make('branch_id')
-            ->label('Select Branch')
-            ->options(fn() => ['all' => 'All Branch'] + Branch::pluck('branch_name', 'id')->toArray())
-            ->required(),
-           ])
-         ->action(function ($data) {
-        // Redirect to PDF route — NO binary return here
-        return redirect()->to(route('employees.dtr.pdf', [
-            'branch_id' => $data['branch_id'],
-                 ]));
-             })
-            ->openUrlInNewTab() // Open PDF in new tab
-            ->requiresConfirmation(),
+        // Action::make('Generate Employee Report')
+        //     ->label('Generate Employee Report')
+        //     ->color('success')
+        //     ->form([
+        // Select::make('branch_id')
+        //     ->label('Select Branch')
+        //     ->options(fn() => ['all' => 'All Branch'] + Branch::pluck('branch_name', 'id')->toArray())
+        //     ->required(),
+        //    ])
+        //  ->action(function ($data) {
+        // // Redirect to PDF route — NO binary return here
+        // return redirect()->to(route('employees.dtr.pdf', [
+        //     'branch_id' => $data['branch_id'],
+        //          ]));
+        //      })
+        //     ->openUrlInNewTab() // Open PDF in new tab
+        //     ->requiresConfirmation(),
 
         CreateAction::make()
         ->label('Create New Employee'),

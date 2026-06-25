@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DTRExport;
 use App\Imports\DTRImport;
+use App\Http\Controllers\CashAdvancePrintController;
 
 
 
@@ -173,3 +174,9 @@ Route::get('/admin/print-thirteenth-month-summary', function () {
 
     return view('print.thirteenth-month-summary', $printData);
 })->name('thirteenth-month.print')->middleware(['web', 'auth']);
+
+
+Route::middleware(['auth'])->group(function () {
+    Route::get('/cash-advances/print/{employee}', [CashAdvancePrintController::class, 'show'])
+        ->name('cash-advances.print');
+});

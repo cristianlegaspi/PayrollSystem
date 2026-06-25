@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CashAdvance;
 
 class Employee extends Model
 {
@@ -68,5 +69,20 @@ class Employee extends Model
     public function thirteenthMonthOverrides()
     {
         return $this->hasMany(ThirteenthMonthOverride::class);
+    }
+
+    public function cashAdvances()
+    {
+        return $this->hasMany(CashAdvance::class);
+    }
+
+    public function cashAdvancePayments()
+    {
+        return $this->hasMany(CashAdvancePayment::class);
+    }
+
+    public function getCashAdvanceBalanceAttribute(): float
+    {
+        return CashAdvance::balanceForEmployee($this->id);
     }
 }

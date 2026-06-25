@@ -41,6 +41,12 @@ class EmployeesTable
                 TextColumn::make('daily_rate')
                     ->numeric()
                     ->sortable(),
+                TextColumn::make('cash_advance_balance')
+                    ->label('C.A Balance')
+                    ->getStateUsing(fn ($record) => $record->cash_advance_balance)
+                    ->money('PHP')
+                    ->color(fn ($state): string => $state > 0 ? 'danger' : 'success')
+                    ->sortable(false),
                 TextColumn::make('date_hired')
                     ->date()
                     ->toggleable(isToggledHiddenByDefault: true)
