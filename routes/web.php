@@ -177,6 +177,6 @@ Route::get('/admin/print-thirteenth-month-summary', function () {
 
 
 Route::middleware(['auth'])->group(function () {
-    Route::get('/cash-advances/print/{employee}', [CashAdvancePrintController::class, 'show'])
+    Route::get('/cash-advances/print', [CashAdvancePrintController::class, 'print'])
         ->name('cash-advances.print');
 });
