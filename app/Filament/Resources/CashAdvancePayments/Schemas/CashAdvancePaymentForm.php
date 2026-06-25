@@ -43,7 +43,7 @@ class CashAdvancePaymentForm
                             ->required(),
 
                         Select::make('cash_advance_id')
-                            ->label('Cash Advance')
+                            ->label('Cash Advance Number')
                             ->options(function ($get) {
                                 $employeeId = $get('employee_id');
 
@@ -79,7 +79,7 @@ class CashAdvancePaymentForm
                             ->options([
                                 'payment' => 'Payment',
                                 'deduction' => 'Deduction',
-                                'adjustment_less' => 'Adjustment Less',
+                              
                             ])
                             ->required(),
 
@@ -95,7 +95,7 @@ class CashAdvancePaymentForm
                             ->rows(3)
                             ->columnSpanFull(),
                     ])
-                    ->columns(2),
+                   ->columnSpanFull(),
             ]);
     }
 }
