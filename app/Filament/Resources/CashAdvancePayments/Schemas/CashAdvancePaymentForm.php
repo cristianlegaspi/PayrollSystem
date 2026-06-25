@@ -78,7 +78,7 @@ class CashAdvancePaymentForm
                             ->label('Payment Type')
                             ->options([
                                 'payment' => 'Payment',
-                                'deduction' => 'Deduction',
+                             
                               
                             ])
                             ->required(),
