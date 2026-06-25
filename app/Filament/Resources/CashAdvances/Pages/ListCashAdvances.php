@@ -10,7 +10,7 @@ use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Js;
-use App\Filament\Resources\CashAdvances\Widgets\CashAdvanceStatsOverview;
+
 
 class ListCashAdvances extends ListRecords
 {
@@ -105,12 +105,7 @@ class ListCashAdvances extends ListRecords
         ];
     }
 
-    protected function getHeaderWidgets(): array
-{
-    return [
-        CashAdvanceStatsOverview::class,
-    ];
-}
+
 
   
 }

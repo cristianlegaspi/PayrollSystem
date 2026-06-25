@@ -59,8 +59,7 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                   \App\Filament\Widgets\EmployeeOverview::class,
                    \App\Filament\Widgets\PayrollChart::class,
-                    \App\Filament\Widgets\CashAdvanceStatsOverview::class,
-             
+                   
                     //  \App\Filament\Widgets\PayrollSummaryChart::class,
             ])
             ->middleware([
