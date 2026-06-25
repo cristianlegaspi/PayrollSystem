@@ -36,6 +36,12 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public int $dividend = 12;
 
     /**
+     * This controls if the monthly fields are editable or read-only.
+     * No migration needed. This only affects the current page session.
+     */
+    public bool $fieldsLocked = false;
+
+    /**
      * This is the editable/live value shown in the table.
      */
     public array $overrides = [];
@@ -216,15 +222,48 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextColumn
     {
-        return TextColumn::make("month_override_{$monthName}")
+        $column = TextColumn::make("month_override_{$monthName}")
             ->label(ucfirst($monthName))
             ->alignEnd()
             ->extraAttributes([
-                'class' => 'w-24 min-w-[95px] max-w-[120px] sm:w-28 md:w-32',
-            ])
-            ->view('filament.tables.columns.inline-matrix-input', [
-                'monthNumber' => $monthNumber,
+                'class' => 'w-24 min-w-[95px] max-w-[120px] sm:w-28 md:w-32 font-mono',
             ]);
+
+        /**
+         * If locked, do not use the editable Blade input.
+         * Instead, show the value as plain read-only money text.
+         */
+        if ($this->fieldsLocked) {
+            return $column
+                ->money('PHP')
+                ->state(function (Employee $record) use ($monthNumber) {
+                    return (float) ($this->overrides[$record->id][$monthNumber] ?? 0);
+                });
+        }
+
+        /**
+         * If unlocked, use your existing editable Blade view.
+         * No Blade changes needed.
+         */
+        return $column->view('filament.tables.columns.inline-matrix-input', [
+            'monthNumber' => $monthNumber,
+        ]);
+    }
+
+    public function toggleFieldsLock(): void
+    {
+        $this->fieldsLocked = ! $this->fieldsLocked;
+
+        $this->resetTable();
+
+        Notification::make()
+            ->title($this->fieldsLocked ? 'Fields Locked' : 'Fields Unlocked')
+            ->body($this->fieldsLocked
+                ? 'All monthly fields are now locked and shown as read-only.'
+                : 'All monthly fields are now editable again.'
+            )
+            ->success()
+            ->send();
     }
 
     public function calculateEmployeeTotalGross(int $employeeId): float
@@ -303,6 +342,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 ->label('Refresh from Payroll')
                 ->icon('heroicon-m-arrow-path')
                 ->color('gray')
+                ->disabled(fn () => $this->fieldsLocked)
                 ->action(function () {
                     $this->preloadDatabaseValues();
 
@@ -319,6 +359,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 ->label('Clear Saved Overrides')
                 ->icon('heroicon-m-trash')
                 ->color('danger')
+                ->disabled(fn () => $this->fieldsLocked)
                 ->requiresConfirmation()
                 ->modalHeading('Clear saved 13th month overrides?')
                 ->modalDescription('This will delete saved manual override values for the selected year. After clearing, the page will use the current payroll gross pay again.')
@@ -340,6 +381,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 ->label('Save Manual Overrides')
                 ->icon('heroicon-m-check-circle')
                 ->color('success')
+                ->disabled(fn () => $this->fieldsLocked)
                 ->requiresConfirmation()
                 ->action(function () {
                     foreach ($this->overrides as $employeeId => $months) {
@@ -382,14 +424,25 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
                     $this->preloadDatabaseValues();
 
+                    /**
+                     * Automatically lock all fields after saving.
+                     */
+                    $this->fieldsLocked = true;
+
                     $this->resetTable();
 
                     Notification::make()
                         ->title('Success')
-                        ->body('Manual 13th month overrides saved successfully.')
+                        ->body('Manual 13th month overrides saved successfully. All fields are now locked.')
                         ->success()
                         ->send();
                 }),
+
+            Action::make('toggleFieldsLock')
+                ->label(fn () => $this->fieldsLocked ? 'Unlock Fields' : 'Lock All Fields')
+                ->icon(fn () => $this->fieldsLocked ? 'heroicon-m-lock-open' : 'heroicon-m-lock-closed')
+                ->color(fn () => $this->fieldsLocked ? 'warning' : 'danger')
+                ->action(fn () => $this->toggleFieldsLock()),
 
             Action::make('printSummary')
                 ->label('Print Summary')
@@ -410,6 +463,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             Action::make('filterOptions')
                 ->label("Settings (Year: {$this->year} | Dividend: ÷{$this->dividend})")
                 ->icon('heroicon-m-adjustments-horizontal')
+                ->disabled(fn () => $this->fieldsLocked)
                 ->form([
                     Select::make('year')
                         ->label('Select Calendar Year')
