@@ -10,6 +10,7 @@ use Filament\Actions\CreateAction;
 use Filament\Forms\Components\Select;
 use Filament\Resources\Pages\ListRecords;
 use Illuminate\Support\Js;
+use App\Filament\Resources\CashAdvances\Widgets\CashAdvanceStatsOverview;
 
 class ListCashAdvances extends ListRecords
 {
@@ -44,16 +45,17 @@ class ListCashAdvances extends ListRecords
 
                     Select::make('branch_id')
                         ->label('Branch')
-                        ->options(fn () => Branch::query()
-                            ->orderBy('branch_name')
-                            ->pluck('branch_name', 'id')
-                            ->toArray()
+                        ->options(
+                            fn() => Branch::query()
+                                ->orderBy('branch_name')
+                                ->pluck('branch_name', 'id')
+                                ->toArray()
                         )
                         ->searchable()
                         ->preload()
                         ->live()
-                        ->visible(fn ($get) => in_array($get('scope'), ['employee', 'branch'], true))
-                        ->required(fn ($get) => in_array($get('scope'), ['employee', 'branch'], true))
+                        ->visible(fn($get) => in_array($get('scope'), ['employee', 'branch'], true))
+                        ->required(fn($get) => in_array($get('scope'), ['employee', 'branch'], true))
                         ->afterStateUpdated(function ($set) {
                             $set('employee_id', null);
                         }),
@@ -72,7 +74,7 @@ class ListCashAdvances extends ListRecords
                                 ->whereHas('cashAdvances')
                                 ->orderBy('full_name')
                                 ->get()
-                                ->mapWithKeys(fn ($employee) => [
+                                ->mapWithKeys(fn($employee) => [
                                     $employee->id => $employee->display_name
                                         . ' - Balance: ₱'
                                         . number_format($employee->cash_advance_balance, 2),
@@ -81,9 +83,9 @@ class ListCashAdvances extends ListRecords
                         })
                         ->searchable()
                         ->preload()
-                        ->visible(fn ($get) => $get('scope') === 'employee')
-                        ->required(fn ($get) => $get('scope') === 'employee')
-                        ->disabled(fn ($get) => blank($get('branch_id')))
+                        ->visible(fn($get) => $get('scope') === 'employee')
+                        ->required(fn($get) => $get('scope') === 'employee')
+                        ->disabled(fn($get) => blank($get('branch_id')))
                         ->helperText('Only employees with Cash Advance records will appear.'),
                 ])
                 ->modalHeading('Print Cash Advance Statement')
@@ -102,4 +104,13 @@ class ListCashAdvances extends ListRecords
                 ->label('Create New Cash Advance'),
         ];
     }
+
+    protected function getHeaderWidgets(): array
+{
+    return [
+        CashAdvanceStatsOverview::class,
+    ];
+}
+
+  
 }
