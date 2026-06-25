@@ -49,10 +49,10 @@ class CashAdvance extends Model
     public static function increaseTypes(): array
     {
         return [
-            'previous_balance',
+           
             'cash_advance',
             'motor_assistance',
-            'adjustment_add',
+         
         ];
     }
 
