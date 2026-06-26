@@ -3,11 +3,14 @@
 namespace App\Filament\Pages;
 
 use App\Models\Employee;
+use App\Models\ThirteenthMonthLock;
+use App\Models\ThirteenthMonthOverride;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
@@ -34,10 +37,21 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public int $dividend = 12;
 
     /**
-     * This stores the actual payroll gross pay from Payroll records.
-     * No manual input / override is used anymore.
+     * This controls if all monthly fields are editable or read-only.
+     * This is now saved in the database using thirteenth_month_locks table.
      */
-    public array $payrollGross = [];
+    public bool $fieldsLocked = false;
+
+    /**
+     * This is the editable/live value shown in the table.
+     */
+    public array $overrides = [];
+
+    /**
+     * This stores the actual payroll gross pay from Payroll records.
+     * Used to know if the user made a real manual override.
+     */
+    public array $basePayroll = [];
 
     public static function canAccess(): bool
     {
@@ -58,41 +72,104 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     {
         $this->year = (int) request()->get('year', Carbon::now()->year);
 
-        $this->preloadPayrollValues();
+        $this->loadFieldsLockStatus();
+
+        $this->preloadDatabaseValues();
+    }
+
+    public function loadFieldsLockStatus(): void
+    {
+        $this->fieldsLocked = (bool) ThirteenthMonthLock::query()
+            ->where('year', (int) $this->year)
+            ->value('is_locked');
+    }
+
+    public function saveFieldsLockStatus(): void
+    {
+        ThirteenthMonthLock::updateOrCreate(
+            [
+                'year' => (int) $this->year,
+            ],
+            [
+                'is_locked' => $this->fieldsLocked,
+            ]
+        );
+    }
+
+    public function toggleFieldsLock(): void
+    {
+        $this->fieldsLocked = ! $this->fieldsLocked;
+
+        $this->saveFieldsLockStatus();
+
+        $this->resetTable();
+
+        Notification::make()
+            ->title($this->fieldsLocked ? 'Fields Locked' : 'Fields Unlocked')
+            ->body($this->fieldsLocked
+                ? 'All monthly fields are now locked and shown as read-only.'
+                : 'All monthly fields are now editable again.'
+            )
+            ->success()
+            ->send();
     }
 
     /**
-     * Load 13th month values directly from payroll gross_pay.
+     * Load 13th month values.
+     *
+     * Default source:
+     * - Payroll gross_pay
+     *
+     * Optional source:
+     * - ThirteenthMonthOverride, only if manually saved.
      */
-    public function preloadPayrollValues(): void
+    public function preloadDatabaseValues(): void
     {
-        $this->payrollGross = [];
+        $this->overrides = [];
+        $this->basePayroll = [];
 
-        $employees = Employee::query()
-            ->whereHas('payrolls.period', function ($query) {
-                $query->whereYear('start_date', (int) $this->year);
-            })
+        $employees = Employee::where(function ($masterQuery) {
+            $masterQuery
+                ->whereHas('payrolls.period', function ($query) {
+                    $query->whereYear('start_date', $this->year);
+                })
+                ->orWhereHas('thirteenthMonthOverrides', function ($query) {
+                    $query->where('year', $this->year);
+                });
+        })
             ->with([
-                'payrolls' => function ($query) {
-                    $query->whereHas('period', function ($periodQuery) {
-                        $periodQuery->whereYear('start_date', (int) $this->year);
-                    });
-                },
                 'payrolls.period',
+                'thirteenthMonthOverrides' => function ($query) {
+                    $query->where('year', $this->year);
+                },
             ])
             ->get();
 
         foreach ($employees as $employee) {
             for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
-                $grossPay = $employee->payrolls
+                $payrollGrossPay = $employee->payrolls
                     ->filter(function ($payroll) use ($monthNumber) {
                         return $payroll->period
                             && Carbon::parse($payroll->period->start_date)->month === $monthNumber
-                            && Carbon::parse($payroll->period->start_date)->year === (int) $this->year;
+                            && Carbon::parse($payroll->period->start_date)->year == $this->year;
                     })
                     ->sum('gross_pay');
 
-                $this->payrollGross[$employee->id][$monthNumber] = (float) ($grossPay ?? 0);
+                $payrollGrossPay = (float) ($payrollGrossPay ?? 0);
+
+                $this->basePayroll[$employee->id][$monthNumber] = $payrollGrossPay;
+
+                $savedOverride = $employee->thirteenthMonthOverrides
+                    ->where('month', $monthNumber)
+                    ->first();
+
+                /**
+                 * If override exists, use it.
+                 * If no override, use current payroll gross pay.
+                 */
+                $this->overrides[$employee->id][$monthNumber] = $savedOverride
+                    ? (float) $savedOverride->gross_pay_override
+                    : $payrollGrossPay;
             }
         }
     }
@@ -103,17 +180,21 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             ->query(
                 Employee::query()
                     ->select('employees.*')
-                    ->whereHas('payrolls.period', function ($query) {
-                        $query->whereYear('start_date', (int) $this->year);
+                    ->where(function ($masterQuery) {
+                        $masterQuery
+                            ->whereHas('payrolls.period', function ($query) {
+                                $query->whereYear('start_date', $this->year);
+                            })
+                            ->orWhereHas('thirteenthMonthOverrides', function ($query) {
+                                $query->where('year', $this->year);
+                            });
                     })
                     ->with([
                         'position',
-                        'payrolls' => function ($query) {
-                            $query->whereHas('period', function ($periodQuery) {
-                                $periodQuery->whereYear('start_date', (int) $this->year);
-                            });
-                        },
                         'payrolls.period',
+                        'thirteenthMonthOverrides' => function ($query) {
+                            $query->where('year', $this->year);
+                        },
                     ])
             )
             ->columns([
@@ -159,37 +240,70 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeTotalGross($record->id) / $this->dividend),
             ])
-            ->defaultSort('full_name', 'asc');
+            ->defaultSort('full_name', 'asc')
+            ->actions([
+                Action::make('printIndividual')
+                    ->label('Print')
+                    ->icon('heroicon-m-printer')
+                    ->color('info')
+                    ->action(function (Employee $record) {
+                        session()->put('thirteenth_month_print_data', [
+                            'year' => $this->year,
+                            'dividend' => $this->dividend,
+                            'is_single' => true,
+                            'employees' => $this->getPrintData($record->id),
+                            'grand_totals' => $this->getGrandTotals($record->id),
+                        ]);
+
+                        $this->dispatch('open-print-preview');
+                    }),
+            ]);
     }
 
     protected function makeMonthlyColumn(string $monthName, int $monthNumber): TextColumn
     {
-        return TextColumn::make("month_pay_{$monthName}")
+        $column = TextColumn::make("month_override_{$monthName}")
             ->label(ucfirst($monthName))
-            ->money('PHP')
             ->alignEnd()
             ->extraAttributes([
                 'class' => 'w-24 min-w-[95px] max-w-[120px] sm:w-28 md:w-32 font-mono',
-            ])
-            ->state(function (Employee $record) use ($monthNumber) {
-                return (float) ($this->payrollGross[$record->id][$monthNumber] ?? 0);
-            });
+            ]);
+
+        /**
+         * If locked, do not use the editable Blade input.
+         * Instead, show the value as plain read-only money text.
+         */
+        if ($this->fieldsLocked) {
+            return $column
+                ->money('PHP')
+                ->state(function (Employee $record) use ($monthNumber) {
+                    return (float) ($this->overrides[$record->id][$monthNumber] ?? 0);
+                });
+        }
+
+        /**
+         * If unlocked, use your existing editable Blade view.
+         * No Blade changes needed.
+         */
+        return $column->view('filament.tables.columns.inline-matrix-input', [
+            'monthNumber' => $monthNumber,
+        ]);
     }
 
     public function calculateEmployeeTotalGross(int $employeeId): float
     {
-        if (! isset($this->payrollGross[$employeeId])) {
+        if (! isset($this->overrides[$employeeId])) {
             return 0.0;
         }
 
-        return array_sum(array_map('floatval', $this->payrollGross[$employeeId]));
+        return array_sum(array_map('floatval', $this->overrides[$employeeId]));
     }
 
     public function getGrandTotals(?int $employeeId = null): array
     {
         $grandTotalGross = 0;
 
-        foreach ($this->payrollGross as $id => $months) {
+        foreach ($this->overrides as $id => $months) {
             if ($employeeId !== null && (int) $id !== (int) $employeeId) {
                 continue;
             }
@@ -205,13 +319,20 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
     public function getPrintData(?int $employeeId = null): array
     {
-        $query = Employee::query()
-            ->whereHas('payrolls.period', function ($query) {
-                $query->whereYear('start_date', (int) $this->year);
-            });
+        $query = Employee::query();
 
         if ($employeeId !== null) {
             $query->where('id', $employeeId);
+        } else {
+            $query->where(function ($masterQuery) {
+                $masterQuery
+                    ->whereHas('payrolls.period', function ($query) {
+                        $query->whereYear('start_date', $this->year);
+                    })
+                    ->orWhereHas('thirteenthMonthOverrides', function ($query) {
+                        $query->where('year', $this->year);
+                    });
+            });
         }
 
         $employees = $query->get()->sortBy('full_name');
@@ -219,7 +340,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         $data = [];
 
         foreach ($employees as $employee) {
-            $months = $this->payrollGross[$employee->id] ?? array_fill(1, 12, 0.0);
+            $months = $this->overrides[$employee->id] ?? array_fill(1, 12, 0.0);
 
             $months = array_map('floatval', $months);
 
@@ -241,6 +362,121 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     protected function getHeaderActions(): array
     {
         return [
+            Action::make('refreshPayroll')
+                ->label('Refresh from Payroll')
+                ->icon('heroicon-m-arrow-path')
+                ->color('gray')
+                ->disabled(fn () => $this->fieldsLocked)
+                ->action(function () {
+                    $this->preloadDatabaseValues();
+
+                    $this->resetTable();
+
+                    Notification::make()
+                        ->title('Refreshed')
+                        ->body('13th month values were refreshed from payroll records.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('clearOverrides')
+                ->label('Clear Saved Overrides')
+                ->icon('heroicon-m-trash')
+                ->color('danger')
+                ->disabled(fn () => $this->fieldsLocked)
+                ->requiresConfirmation()
+                ->modalHeading('Clear saved 13th month overrides?')
+                ->modalDescription('This will delete saved manual override values for the selected year. After clearing, the page will use the current payroll gross pay again.')
+                ->action(function () {
+                    ThirteenthMonthOverride::where('year', $this->year)->delete();
+
+                    $this->preloadDatabaseValues();
+
+                    $this->resetTable();
+
+                    Notification::make()
+                        ->title('Overrides Cleared')
+                        ->body('Saved overrides were deleted. Current payroll gross pay is now being used.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('saveToDatabase')
+                ->label('Save Manual Overrides')
+                ->icon('heroicon-m-check-circle')
+                ->color('success')
+                ->disabled(fn () => $this->fieldsLocked)
+                ->requiresConfirmation()
+                ->action(function () {
+                    foreach ($this->overrides as $employeeId => $months) {
+                        foreach ($months as $monthNumber => $value) {
+                            $value = round((float) $value, 2);
+
+                            $baseAmount = round(
+                                (float) ($this->basePayroll[$employeeId][$monthNumber] ?? 0),
+                                2
+                            );
+
+                            /**
+                             * If the displayed value is same as Payroll gross_pay,
+                             * do not save it as override.
+                             */
+                            if ($value === $baseAmount) {
+                                ThirteenthMonthOverride::where('employee_id', $employeeId)
+                                    ->where('year', $this->year)
+                                    ->where('month', $monthNumber)
+                                    ->delete();
+
+                                continue;
+                            }
+
+                            /**
+                             * Only save real manual changes.
+                             */
+                            ThirteenthMonthOverride::updateOrCreate(
+                                [
+                                    'employee_id' => $employeeId,
+                                    'year' => $this->year,
+                                    'month' => $monthNumber,
+                                ],
+                                [
+                                    'gross_pay_override' => $value,
+                                ]
+                            );
+                        }
+                    }
+
+                    $this->preloadDatabaseValues();
+
+                    /**
+                     * Automatically lock all fields after saving.
+                     * This lock status is saved in the database.
+                     */
+                    $this->fieldsLocked = true;
+
+                    $this->saveFieldsLockStatus();
+
+                    $this->resetTable();
+
+                    Notification::make()
+                        ->title('Success')
+                        ->body('Manual 13th month overrides saved successfully. All fields are now locked.')
+                        ->success()
+                        ->send();
+                }),
+
+            Action::make('toggleFieldsLock')
+                ->label(fn () => $this->fieldsLocked ? 'Unlock Fields' : 'Lock All Fields')
+                ->icon(fn () => $this->fieldsLocked ? 'heroicon-m-lock-open' : 'heroicon-m-lock-closed')
+                ->color(fn () => $this->fieldsLocked ? 'warning' : 'danger')
+                ->requiresConfirmation()
+                ->modalHeading(fn () => $this->fieldsLocked ? 'Unlock all fields?' : 'Lock all fields?')
+                ->modalDescription(fn () => $this->fieldsLocked
+                    ? 'All monthly fields for this year will become editable again.'
+                    : 'All monthly fields for this year will become read-only until unlocked.'
+                )
+                ->action(fn () => $this->toggleFieldsLock()),
+
             Action::make('printSummary')
                 ->label('Print Summary')
                 ->icon('heroicon-m-printer')
@@ -286,7 +522,12 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
                     $this->dividend = (int) $data['dividend'];
 
-                    $this->preloadPayrollValues();
+                    /**
+                     * Load the saved lock status for the selected year.
+                     */
+                    $this->loadFieldsLockStatus();
+
+                    $this->preloadDatabaseValues();
 
                     $this->resetTable();
                 })
