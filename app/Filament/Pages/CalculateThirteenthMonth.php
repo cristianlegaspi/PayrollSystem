@@ -41,8 +41,8 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public int | string $year;
 
     /**
-     * Kept public so your existing Blade/print files will not break.
-     * But value is now fixed to 12 only.
+     * Kept public so existing Blade/print files using $dividend will not break.
+     * The value is fixed to 12.
      */
     public int $dividend = self::STANDARD_DIVIDEND;
 
@@ -78,6 +78,11 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         $this->preloadThirteenthMonthValues();
     }
 
+    /**
+     * Do NOT use hydrate() here.
+     * hydrate() can reload the data on every Livewire request
+     * and can cause manually saved values to appear overwritten.
+     */
     public function preloadThirteenthMonthValues(): void
     {
         $this->thirteenthMonthValues = [];
@@ -209,6 +214,25 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeWholeYearPay($record->id)),
             ])
+            ->recordActions([
+                Action::make('printEmployee')
+                    ->label('Print')
+                    ->icon('heroicon-m-printer')
+                    ->color('success')
+                    ->button()
+                    ->action(function (Employee $record) {
+                        session()->put('thirteenth_month_print_data', [
+                            'year' => $this->year,
+                            'dividend' => self::STANDARD_DIVIDEND,
+                            'is_single' => true,
+                            'employee_id' => $record->id,
+                            'employees' => $this->getPrintData($record->id),
+                            'grand_totals' => $this->getGrandTotals($record->id),
+                        ]);
+
+                        $this->dispatch('open-print-preview');
+                    }),
+            ])
             ->defaultSort('full_name', 'asc');
     }
 
@@ -268,7 +292,6 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     public function getGrandTotals(?int $employeeId = null): array
     {
         $grandTotalGross = 0.0;
-
         $grandMidYearGross = 0.0;
 
         foreach ($this->thirteenthMonthValues as $id => $months) {
@@ -291,7 +314,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             'mid_year_pay' => $grandMidYearGross / self::STANDARD_DIVIDEND,
             'whole_year_pay' => $grandTotalGross / self::STANDARD_DIVIDEND,
 
-            // Keep old key so existing print Blade will not break.
+            // Old key retained so existing print Blade will not break.
             'thirteenth' => $grandTotalGross / self::STANDARD_DIVIDEND,
         ];
     }
@@ -342,7 +365,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 'mid_year_pay' => $midYearPay,
                 'whole_year_pay' => $wholeYearPay,
 
-                // Keep old key so existing print Blade will not break.
+                // Old key retained so existing print Blade will not break.
                 'thirteenth_pay' => $wholeYearPay,
             ];
         }
