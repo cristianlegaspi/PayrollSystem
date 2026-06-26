@@ -19,6 +19,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Support\Enums\Width;
 
 
 class AdminPanelProvider extends PanelProvider
@@ -50,6 +51,14 @@ class AdminPanelProvider extends PanelProvider
             // ])
             
             ->brandName('E.A OCAMPO ENTERPRISES')
+
+
+            // Use full dashboard/content width
+            ->maxContentWidth(Width::Full)
+
+            // Sidebar can fully collapse on desktop
+            ->sidebarFullyCollapsibleOnDesktop()
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
