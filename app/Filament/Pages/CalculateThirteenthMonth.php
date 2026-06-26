@@ -78,6 +78,38 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         $this->preloadThirteenthMonthValues();
     }
 
+    protected function employeeIsResigned(Employee $employee): bool
+    {
+        return strtolower(trim((string) $employee->status)) === 'resigned';
+    }
+
+    protected function employeeIsActive(Employee $employee): bool
+    {
+        return strtolower(trim((string) $employee->status)) === 'active';
+    }
+
+    /**
+     * Reusable query filter for active employees only.
+     */
+    protected function applyActiveEmployeeStatusFilter($query): void
+    {
+        $query->whereRaw('LOWER(TRIM(status)) = ?', ['active']);
+    }
+
+    /**
+     * Only the employee name will become red if resigned.
+     */
+    protected function getEmployeeNameColumnClass(Employee $employee): string
+    {
+        $baseClass = 'font-semibold sticky left-0 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-64 min-w-[240px] truncate max-w-[280px] bg-white dark:bg-gray-900';
+
+        if ($this->employeeIsResigned($employee)) {
+            return $baseClass . ' !text-red-600 dark:!text-red-400';
+        }
+
+        return $baseClass;
+    }
+
     /**
      * Do NOT use hydrate() here.
      * hydrate() can reload the data on every Livewire request
@@ -163,8 +195,27 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->label('Employee Name')
                     ->searchable()
                     ->sortable()
+                    ->description(fn (Employee $record) => $this->employeeIsResigned($record) ? 'Resigned employee' : null)
+                    ->color(fn (Employee $record) => $this->employeeIsResigned($record) ? 'danger' : null)
+                    ->extraAttributes(fn (Employee $record) => [
+                        'class' => $this->getEmployeeNameColumnClass($record),
+                    ]),
+
+                TextColumn::make('status')
+                    ->label('Status')
+                    ->badge()
+                    ->formatStateUsing(fn ($state) => ucfirst((string) $state))
+                    ->color(function ($state) {
+                        return match (strtolower(trim((string) $state))) {
+                            'active' => 'success',
+                            'resigned' => 'danger',
+                            default => 'gray',
+                        };
+                    })
+                    ->searchable()
+                    ->sortable()
                     ->extraAttributes([
-                        'class' => 'font-semibold sticky left-0 bg-white dark:bg-gray-900 z-10 shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)] w-64 min-w-[240px] truncate max-w-[280px]',
+                        'class' => 'w-28 min-w-[110px] font-semibold',
                     ]),
 
                 $this->makeMonthlyColumn('jan', 1),
@@ -201,6 +252,18 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         'class' => 'w-36 min-w-[140px] font-mono',
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeMidYearPay($record->id)),
+
+                TextColumn::make('year_end_pay')
+                    ->label('Year-End Pay')
+                    ->description('Jul-Dec ÷12')
+                    ->money('PHP')
+                    ->color('warning')
+                    ->weight('bold')
+                    ->alignEnd()
+                    ->extraAttributes([
+                        'class' => 'w-36 min-w-[140px] font-mono',
+                    ])
+                    ->state(fn (Employee $record) => $this->calculateEmployeeYearEndPay($record->id)),
 
                 TextColumn::make('whole_year_pay')
                     ->label('Whole Year Pay')
@@ -279,9 +342,19 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         return $this->calculateEmployeeGrossByMonthRange($employeeId, 1, 6);
     }
 
+    public function calculateEmployeeYearEndGross(int $employeeId): float
+    {
+        return $this->calculateEmployeeGrossByMonthRange($employeeId, 7, 12);
+    }
+
     public function calculateEmployeeMidYearPay(int $employeeId): float
     {
         return $this->calculateEmployeeMidYearGross($employeeId) / self::STANDARD_DIVIDEND;
+    }
+
+    public function calculateEmployeeYearEndPay(int $employeeId): float
+    {
+        return $this->calculateEmployeeYearEndGross($employeeId) / self::STANDARD_DIVIDEND;
     }
 
     public function calculateEmployeeWholeYearPay(int $employeeId): float
@@ -293,9 +366,33 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     {
         $grandTotalGross = 0.0;
         $grandMidYearGross = 0.0;
+        $grandYearEndGross = 0.0;
+
+        $activeEmployeeIdLookup = [];
+
+        /*
+         * If employeeId is null, this is Print Summary.
+         * Print Summary must include ACTIVE employees only.
+         *
+         * If employeeId is not null, this is single employee print.
+         * Single print keeps the selected employee even if resigned.
+         */
+        if ($employeeId === null && ! empty($this->thirteenthMonthValues)) {
+            $activeEmployeeIdLookup = Employee::query()
+                ->whereIn('id', array_keys($this->thirteenthMonthValues))
+                ->whereRaw('LOWER(TRIM(status)) = ?', ['active'])
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->flip()
+                ->all();
+        }
 
         foreach ($this->thirteenthMonthValues as $id => $months) {
             if ($employeeId !== null && (int) $id !== (int) $employeeId) {
+                continue;
+            }
+
+            if ($employeeId === null && ! isset($activeEmployeeIdLookup[(int) $id])) {
                 continue;
             }
 
@@ -306,12 +403,21 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             for ($month = 1; $month <= 6; $month++) {
                 $grandMidYearGross += (float) ($months[$month] ?? 0);
             }
+
+            for ($month = 7; $month <= 12; $month++) {
+                $grandYearEndGross += (float) ($months[$month] ?? 0);
+            }
         }
 
         return [
             'gross' => $grandTotalGross,
+
             'mid_year_gross' => $grandMidYearGross,
             'mid_year_pay' => $grandMidYearGross / self::STANDARD_DIVIDEND,
+
+            'year_end_gross' => $grandYearEndGross,
+            'year_end_pay' => $grandYearEndGross / self::STANDARD_DIVIDEND,
+
             'whole_year_pay' => $grandTotalGross / self::STANDARD_DIVIDEND,
 
             // Old key retained so existing print Blade will not break.
@@ -334,6 +440,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
         if ($employeeId !== null) {
             $query->where('id', $employeeId);
+        } else {
+            // Print Summary should include ACTIVE employees only.
+            $this->applyActiveEmployeeStatusFilter($query);
         }
 
         $employees = $query->get()->sortBy('full_name');
@@ -346,23 +455,33 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
             $months = array_map('floatval', $months);
 
             $midYearGross = 0.0;
+            $yearEndGross = 0.0;
 
             for ($month = 1; $month <= 6; $month++) {
                 $midYearGross += (float) ($months[$month] ?? 0);
             }
 
+            for ($month = 7; $month <= 12; $month++) {
+                $yearEndGross += (float) ($months[$month] ?? 0);
+            }
+
             $totalGross = array_sum($months);
 
             $midYearPay = $midYearGross / self::STANDARD_DIVIDEND;
-
+            $yearEndPay = $yearEndGross / self::STANDARD_DIVIDEND;
             $wholeYearPay = $totalGross / self::STANDARD_DIVIDEND;
 
             $data[] = [
                 'name' => $employee->full_name,
+                'status' => $employee->status,
                 'months' => $months,
+
                 'mid_year_gross' => $midYearGross,
+                'year_end_gross' => $yearEndGross,
                 'total_gross' => $totalGross,
+
                 'mid_year_pay' => $midYearPay,
+                'year_end_pay' => $yearEndPay,
                 'whole_year_pay' => $wholeYearPay,
 
                 // Old key retained so existing print Blade will not break.
@@ -385,7 +504,11 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         'year' => $this->year,
                         'dividend' => self::STANDARD_DIVIDEND,
                         'is_single' => false,
+
+                        // Active employees only.
                         'employees' => $this->getPrintData(),
+
+                        // Active employees only.
                         'grand_totals' => $this->getGrandTotals(),
                     ]);
 
