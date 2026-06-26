@@ -3,7 +3,6 @@
 namespace App\Filament\Pages;
 
 use App\Models\Employee;
-use App\Models\ThirteenthMonthOverride;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
@@ -30,12 +29,22 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
     protected string $view = 'filament.pages.calculate-thirteenth-month';
 
-     protected ?string $heading = '13th Month Pay Management';
+    protected ?string $heading = '13th Month Pay Management';
+
     protected ?string $subheading = 'Overview of All 13th Month Pay Calculations';
+
+    /**
+     * Standard 13th Month Pay computation is always divided by 12.
+     */
+    protected const STANDARD_DIVIDEND = 12;
 
     public int | string $year;
 
-    public int $dividend = 12;
+    /**
+     * Kept public so your existing Blade/print files will not break.
+     * But value is now fixed to 12 only.
+     */
+    public int $dividend = self::STANDARD_DIVIDEND;
 
     /**
      * Final values displayed in the table.
@@ -64,66 +73,63 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
     {
         $this->year = (int) request()->get('year', Carbon::now()->year);
 
+        $this->dividend = self::STANDARD_DIVIDEND;
+
         $this->preloadThirteenthMonthValues();
     }
 
-    /**
-     * Do NOT use hydrate() here.
-     * hydrate() can reload the data on every Livewire request
-     * and can cause manually saved values to appear overwritten.
-     */
-
     public function preloadThirteenthMonthValues(): void
-{
-    $this->thirteenthMonthValues = [];
+    {
+        $this->thirteenthMonthValues = [];
 
-    $employees = Employee::query()
-        ->where(function ($query) {
-            $query
-                ->whereHas('payrolls.period', function ($payrollQuery) {
-                    $payrollQuery->whereYear('start_date', (int) $this->year);
-                })
-                ->orWhereHas('thirteenthMonthOverrides', function ($overrideQuery) {
-                    $overrideQuery->where('year', (int) $this->year);
-                });
-        })
-        ->with([
-            'payrolls' => function ($query) {
-                $query->whereHas('period', function ($periodQuery) {
-                    $periodQuery->whereYear('start_date', (int) $this->year);
-                });
-            },
-            'payrolls.period',
-            'thirteenthMonthOverrides' => function ($query) {
-                $query->where('year', (int) $this->year);
-            },
-        ])
-        ->get();
+        $employees = Employee::query()
+            ->where(function ($query) {
+                $query
+                    ->whereHas('payrolls.period', function ($payrollQuery) {
+                        $payrollQuery->whereYear('start_date', (int) $this->year);
+                    })
+                    ->orWhereHas('thirteenthMonthOverrides', function ($overrideQuery) {
+                        $overrideQuery->where('year', (int) $this->year);
+                    });
+            })
+            ->with([
+                'payrolls' => function ($query) {
+                    $query->whereHas('period', function ($periodQuery) {
+                        $periodQuery->whereYear('start_date', (int) $this->year);
+                    });
+                },
+                'payrolls.period',
+                'thirteenthMonthOverrides' => function ($query) {
+                    $query->where('year', (int) $this->year);
+                },
+            ])
+            ->get();
 
-    foreach ($employees as $employee) {
-        for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
-            $payrollGrossPay = $employee->payrolls
-                ->filter(function ($payroll) use ($monthNumber) {
-                    return $payroll->period
-                        && Carbon::parse($payroll->period->start_date)->month === $monthNumber
-                        && Carbon::parse($payroll->period->start_date)->year === (int) $this->year;
-                })
-                ->sum('gross_pay');
+        foreach ($employees as $employee) {
+            for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
+                $payrollGrossPay = $employee->payrolls
+                    ->filter(function ($payroll) use ($monthNumber) {
+                        return $payroll->period
+                            && Carbon::parse($payroll->period->start_date)->month === $monthNumber
+                            && Carbon::parse($payroll->period->start_date)->year === (int) $this->year;
+                    })
+                    ->sum('gross_pay');
 
-            $savedOverride = $employee->thirteenthMonthOverrides
-                ->where('month', $monthNumber)
-                ->first();
+                $savedOverride = $employee->thirteenthMonthOverrides
+                    ->where('month', $monthNumber)
+                    ->first();
 
-            $overrideValue = $savedOverride
-                ? (float) $savedOverride->gross_pay_override
-                : null;
+                $overrideValue = $savedOverride
+                    ? (float) $savedOverride->gross_pay_override
+                    : null;
 
-            $this->thirteenthMonthValues[$employee->id][$monthNumber] = ($overrideValue !== null && $overrideValue > 0)
-                ? $overrideValue
-                : (float) ($payrollGrossPay ?? 0);
+                $this->thirteenthMonthValues[$employee->id][$monthNumber] = ($overrideValue !== null && $overrideValue > 0)
+                    ? $overrideValue
+                    : (float) ($payrollGrossPay ?? 0);
+            }
         }
     }
-}
+
     public function table(Table $table): Table
     {
         return $table
@@ -179,8 +185,21 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeTotalGross($record->id)),
 
-                TextColumn::make('thirteenth_month_pay')
-                    ->label(fn () => "13th Month (÷{$this->dividend})")
+                TextColumn::make('mid_year_pay')
+                    ->label('Mid-Year Pay')
+                    ->description('Jan-Jun ÷12')
+                    ->money('PHP')
+                    ->color('warning')
+                    ->weight('bold')
+                    ->alignEnd()
+                    ->extraAttributes([
+                        'class' => 'w-36 min-w-[140px] font-mono',
+                    ])
+                    ->state(fn (Employee $record) => $this->calculateEmployeeMidYearPay($record->id)),
+
+                TextColumn::make('whole_year_pay')
+                    ->label('Whole Year Pay')
+                    ->description('Jan-Dec ÷12')
                     ->money('PHP')
                     ->color('success')
                     ->weight('bold')
@@ -188,7 +207,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->extraAttributes([
                         'class' => 'w-36 min-w-[140px] font-mono',
                     ])
-                    ->state(fn (Employee $record) => $this->calculateEmployeeTotalGross($record->id) / $this->dividend),
+                    ->state(fn (Employee $record) => $this->calculateEmployeeWholeYearPay($record->id)),
             ])
             ->defaultSort('full_name', 'asc');
     }
@@ -216,21 +235,64 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         return array_sum(array_map('floatval', $this->thirteenthMonthValues[$employeeId]));
     }
 
+    public function calculateEmployeeGrossByMonthRange(int $employeeId, int $startMonth, int $endMonth): float
+    {
+        if (! isset($this->thirteenthMonthValues[$employeeId])) {
+            return 0.0;
+        }
+
+        $total = 0.0;
+
+        for ($month = $startMonth; $month <= $endMonth; $month++) {
+            $total += (float) ($this->thirteenthMonthValues[$employeeId][$month] ?? 0);
+        }
+
+        return $total;
+    }
+
+    public function calculateEmployeeMidYearGross(int $employeeId): float
+    {
+        return $this->calculateEmployeeGrossByMonthRange($employeeId, 1, 6);
+    }
+
+    public function calculateEmployeeMidYearPay(int $employeeId): float
+    {
+        return $this->calculateEmployeeMidYearGross($employeeId) / self::STANDARD_DIVIDEND;
+    }
+
+    public function calculateEmployeeWholeYearPay(int $employeeId): float
+    {
+        return $this->calculateEmployeeTotalGross($employeeId) / self::STANDARD_DIVIDEND;
+    }
+
     public function getGrandTotals(?int $employeeId = null): array
     {
-        $grandTotalGross = 0;
+        $grandTotalGross = 0.0;
+
+        $grandMidYearGross = 0.0;
 
         foreach ($this->thirteenthMonthValues as $id => $months) {
             if ($employeeId !== null && (int) $id !== (int) $employeeId) {
                 continue;
             }
 
-            $grandTotalGross += array_sum(array_map('floatval', $months));
+            $months = array_map('floatval', $months);
+
+            $grandTotalGross += array_sum($months);
+
+            for ($month = 1; $month <= 6; $month++) {
+                $grandMidYearGross += (float) ($months[$month] ?? 0);
+            }
         }
 
         return [
             'gross' => $grandTotalGross,
-            'thirteenth' => $grandTotalGross / $this->dividend,
+            'mid_year_gross' => $grandMidYearGross,
+            'mid_year_pay' => $grandMidYearGross / self::STANDARD_DIVIDEND,
+            'whole_year_pay' => $grandTotalGross / self::STANDARD_DIVIDEND,
+
+            // Keep old key so existing print Blade will not break.
+            'thirteenth' => $grandTotalGross / self::STANDARD_DIVIDEND,
         ];
     }
 
@@ -260,15 +322,28 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
             $months = array_map('floatval', $months);
 
+            $midYearGross = 0.0;
+
+            for ($month = 1; $month <= 6; $month++) {
+                $midYearGross += (float) ($months[$month] ?? 0);
+            }
+
             $totalGross = array_sum($months);
 
-            $thirteenthMonthPay = $totalGross / $this->dividend;
+            $midYearPay = $midYearGross / self::STANDARD_DIVIDEND;
+
+            $wholeYearPay = $totalGross / self::STANDARD_DIVIDEND;
 
             $data[] = [
                 'name' => $employee->full_name,
                 'months' => $months,
+                'mid_year_gross' => $midYearGross,
                 'total_gross' => $totalGross,
-                'thirteenth_pay' => $thirteenthMonthPay,
+                'mid_year_pay' => $midYearPay,
+                'whole_year_pay' => $wholeYearPay,
+
+                // Keep old key so existing print Blade will not break.
+                'thirteenth_pay' => $wholeYearPay,
             ];
         }
 
@@ -285,7 +360,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 ->action(function () {
                     session()->put('thirteenth_month_print_data', [
                         'year' => $this->year,
-                        'dividend' => $this->dividend,
+                        'dividend' => self::STANDARD_DIVIDEND,
                         'is_single' => false,
                         'employees' => $this->getPrintData(),
                         'grand_totals' => $this->getGrandTotals(),
@@ -295,7 +370,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                 }),
 
             Action::make('filterOptions')
-                ->label(fn () => "Settings (Year: {$this->year} | Dividend: ÷{$this->dividend})")
+                ->label(fn () => "Settings (Year: {$this->year} | Dividend: ÷12)")
                 ->icon('heroicon-m-adjustments-horizontal')
                 ->form([
                     Select::make('year')
@@ -308,20 +383,11 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         )
                         ->default(fn () => $this->year)
                         ->required(),
-
-                    Select::make('dividend')
-                        ->label('Calculate Pay Basis (Dividend)')
-                        ->options([
-                            12 => 'Divide by 12 (Standard Full Year Basis)',
-                            6 => 'Divide by 6 (Mid-Year / Custom Basis)',
-                        ])
-                        ->default(fn () => $this->dividend)
-                        ->required(),
                 ])
                 ->action(function (array $data) {
                     $this->year = (int) $data['year'];
 
-                    $this->dividend = (int) $data['dividend'];
+                    $this->dividend = self::STANDARD_DIVIDEND;
 
                     $this->preloadThirteenthMonthValues();
 
