@@ -9,6 +9,9 @@ use Filament\Actions\EditAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
+use App\Models\Branch;
+
 
 class CashAdvancePaymentsTable
 {
@@ -75,6 +78,25 @@ class CashAdvancePaymentsTable
                     ->relationship('employee', 'full_name')
                     ->searchable()
                     ->preload(),
+
+                SelectFilter::make('branch_id')
+                    ->label('Branch')
+                    ->options(fn () => Branch::query()
+                        ->orderBy('branch_name')
+                        ->pluck('branch_name', 'id')
+                        ->toArray()
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->query(function (Builder $query, array $data): Builder {
+                        return $query->when(
+                            $data['value'] ?? null,
+                            fn (Builder $query, $branchId): Builder => $query->whereHas(
+                                'employee',
+                                fn (Builder $employeeQuery): Builder => $employeeQuery->where('branch_id', $branchId)
+                            )
+                        );
+                    }),
 
                 SelectFilter::make('payment_type')
                     ->label('Payment Type')
