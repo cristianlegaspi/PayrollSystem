@@ -85,4 +85,5 @@ class Employee extends Model
     {
         return CashAdvance::balanceForEmployee($this->id);
     }
+    
 }
