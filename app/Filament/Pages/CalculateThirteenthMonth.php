@@ -71,53 +71,56 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
      */
 
     public function preloadThirteenthMonthValues(): void
-    {
-        $this->thirteenthMonthValues = [];
+{
+    $this->thirteenthMonthValues = [];
 
-        $employees = Employee::query()
-            ->where(function ($query) {
-                $query
-                    ->whereHas('payrolls.period', function ($payrollQuery) {
-                        $payrollQuery->whereYear('start_date', (int) $this->year);
-                    })
-                    ->orWhereHas('thirteenthMonthOverrides', function ($overrideQuery) {
-                        $overrideQuery->where('year', (int) $this->year);
-                    });
-            })
-            ->with([
-                'payrolls' => function ($query) {
-                    $query->whereHas('period', function ($periodQuery) {
-                        $periodQuery->whereYear('start_date', (int) $this->year);
-                    });
-                },
-                'payrolls.period',
-                'thirteenthMonthOverrides' => function ($query) {
-                    $query->where('year', (int) $this->year);
-                },
-            ])
-            ->get();
+    $employees = Employee::query()
+        ->where(function ($query) {
+            $query
+                ->whereHas('payrolls.period', function ($payrollQuery) {
+                    $payrollQuery->whereYear('start_date', (int) $this->year);
+                })
+                ->orWhereHas('thirteenthMonthOverrides', function ($overrideQuery) {
+                    $overrideQuery->where('year', (int) $this->year);
+                });
+        })
+        ->with([
+            'payrolls' => function ($query) {
+                $query->whereHas('period', function ($periodQuery) {
+                    $periodQuery->whereYear('start_date', (int) $this->year);
+                });
+            },
+            'payrolls.period',
+            'thirteenthMonthOverrides' => function ($query) {
+                $query->where('year', (int) $this->year);
+            },
+        ])
+        ->get();
 
-        foreach ($employees as $employee) {
-            for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
-                $payrollGrossPay = $employee->payrolls
-                    ->filter(function ($payroll) use ($monthNumber) {
-                        return $payroll->period
-                            && Carbon::parse($payroll->period->start_date)->month === $monthNumber
-                            && Carbon::parse($payroll->period->start_date)->year === (int) $this->year;
-                    })
-                    ->sum('gross_pay');
+    foreach ($employees as $employee) {
+        for ($monthNumber = 1; $monthNumber <= 12; $monthNumber++) {
+            $payrollGrossPay = $employee->payrolls
+                ->filter(function ($payroll) use ($monthNumber) {
+                    return $payroll->period
+                        && Carbon::parse($payroll->period->start_date)->month === $monthNumber
+                        && Carbon::parse($payroll->period->start_date)->year === (int) $this->year;
+                })
+                ->sum('gross_pay');
 
-                $savedOverride = $employee->thirteenthMonthOverrides
-                    ->where('month', $monthNumber)
-                    ->first();
+            $savedOverride = $employee->thirteenthMonthOverrides
+                ->where('month', $monthNumber)
+                ->first();
 
-                $this->thirteenthMonthValues[$employee->id][$monthNumber] = $savedOverride
-                    ? (float) $savedOverride->gross_pay_override
-                    : (float) ($payrollGrossPay ?? 0);
-            }
+            $overrideValue = $savedOverride
+                ? (float) $savedOverride->gross_pay_override
+                : null;
+
+            $this->thirteenthMonthValues[$employee->id][$monthNumber] = ($overrideValue !== null && $overrideValue > 0)
+                ? $overrideValue
+                : (float) ($payrollGrossPay ?? 0);
         }
     }
-
+}
     public function table(Table $table): Table
     {
         return $table
