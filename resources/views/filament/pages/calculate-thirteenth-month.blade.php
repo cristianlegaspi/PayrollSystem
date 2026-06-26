@@ -5,25 +5,34 @@
             overflow-x: auto !important;
             -webkit-overflow-scrolling: touch;
         }
+
         .fi-ta-table {
-            table-layout: auto !important; /* Forces layout tracking engines to prioritize cell min-widths */
+            table-layout: auto !important;
             width: max-content !important;
             min-width: 100% !important;
         }
-        /* Standardizes table header elements with input box alignments */
+
         .fi-ta-header-cell-label {
             justify-content: flex-end !important;
             width: 100%;
             padding-right: 0.25rem;
         }
+
         .fi-ta-table th:first-child .fi-ta-header-cell-label {
             justify-content: flex-start !important;
+        }
+
+        .fi-ta-table td,
+        .fi-ta-table th {
+            white-space: nowrap;
         }
     </style>
 
     <div class="space-y-4">
-        <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
-            💡 <strong>Pro-Tip:</strong> All monthly columns are directly editable inline. Click any value, type an adjustment (e.g., to override a 0), and press <kbd class="px-1.5 py-0.5 bg-white dark:bg-gray-700 border rounded shadow-sm text-xs font-sans">Enter</kbd> to see totals instantly update on-screen.
+        <div class="text-xs text-blue-700 dark:text-blue-200 p-3 bg-blue-50 dark:bg-blue-950/40 rounded-lg border border-blue-100 dark:border-blue-800">
+            💡 <strong>Note:</strong>
+            Monthly amounts are automatically fetched from payroll records.
+            To change any amount, update the employee payroll record first, then refresh this page.
         </div>
 
         <div class="w-full overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
