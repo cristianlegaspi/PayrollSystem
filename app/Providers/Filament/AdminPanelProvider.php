@@ -51,6 +51,7 @@ class AdminPanelProvider extends PanelProvider
             // ])
             
             ->brandName('E.A OCAMPO ENTERPRISES')
+            ->favicon(asset('images/payroll-icon.ico'))
 
 
             // Use full dashboard/content width

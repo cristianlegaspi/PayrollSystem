@@ -22,9 +22,9 @@
     </style>
 
     <div class="space-y-4">
-      <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+      {{-- <div class="text-xs text-gray-500 dark:text-gray-400 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
             Overview: Displays each employee’s monthly gross pay and computed 13th Month Pay for the selected year.
-        </div>
+        </div> --}}
 
         <div class="w-full overflow-x-auto rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
             {{ $this->table }}

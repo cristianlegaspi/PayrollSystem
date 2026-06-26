@@ -30,6 +30,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
     protected string $view = 'filament.pages.calculate-thirteenth-month';
 
+     protected ?string $heading = '13th Month Pay Management';
+    protected ?string $subheading = 'Overview of All 13th Month Pay Calculations';
+
     public int | string $year;
 
     public int $dividend = 12;
