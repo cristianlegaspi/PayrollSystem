@@ -80,18 +80,6 @@ class Payroll extends Model
         return $this->hasOne(Contribution::class, 'employee_id', 'employee_id');
     }
 
-    public function payrollAdjustment()
-    {
-        return $this->hasOne(PayrollAdjustment::class, 'employee_id', 'employee_id')
-            ->whereColumn('payroll_adjustments.payroll_period_id', 'payrolls.payroll_period_id');
-    }
-
-    public function payrollAdjustments()
-    {
-        return $this->hasMany(PayrollAdjustment::class, 'employee_id', 'employee_id')
-            ->whereColumn('payroll_adjustments.payroll_period_id', 'payrolls.payroll_period_id');
-    }
-
     public function getIsAbsentAttribute()
     {
         return $this->status === 'absent_without_pay';
@@ -105,32 +93,8 @@ class Payroll extends Model
     protected static function booted(): void
     {
         static::saving(function (Payroll $payroll) {
-            $payroll->syncAdjustmentsFromRecords();
             $payroll->recalculateTotals();
         });
-    }
-
-    public function syncAdjustmentsFromRecords(): void
-    {
-        if (! $this->employee_id || ! $this->payroll_period_id) {
-            return;
-        }
-
-        $totals = PayrollAdjustment::query()
-            ->where('employee_id', $this->employee_id)
-            ->where('payroll_period_id', $this->payroll_period_id)
-            ->selectRaw('
-                COALESCE(SUM(cash_advance), 0) as cash_advance,
-                COALESCE(SUM(shortages), 0) as shortages,
-                COALESCE(SUM(other_deduction), 0) as other_deduction,
-                COALESCE(SUM(other_incentives), 0) as other_incentives
-            ')
-            ->first();
-
-        $this->cash_advance = $totals->cash_advance ?? 0;
-        $this->shortages = $totals->shortages ?? 0;
-        $this->other_deduction = $totals->other_deduction ?? 0;
-        $this->other_incentives = $totals->other_incentives ?? 0;
     }
 
     public function recalculateTotals(): void
