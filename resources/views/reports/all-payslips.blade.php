@@ -5,10 +5,7 @@
 <title>All Payslips</title>
 
 <style>
-@page {
-    size: A4;
-    margin: 15px;
-}
+@page { size: A4; margin: 15px; }
 
 body {
     font-family: Arial, sans-serif;
@@ -39,17 +36,9 @@ th {
     text-transform: uppercase;
 }
 
-.right {
-    text-align: right;
-}
-
-.center {
-    text-align: center;
-}
-
-.bold {
-    font-weight: bold;
-}
+.right { text-align: right; }
+.center { text-align: center; }
+.bold { font-weight: bold; }
 
 .no-border td {
     border: none;
@@ -116,284 +105,267 @@ th {
 @foreach($payrolls as $payroll)
 
 @php
-$contribution = $payroll->contribution;
+    $contribution = $payroll->contribution;
 
-// Fixed to query both status and remarks accurately
-$legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-    ->whereBetween('work_date', [$period->start_date, $period->end_date])
-    ->where(function($query) {
-        $query->where('remarks', 'LIKE', '%Legal Holiday%')
-              ->orWhere('status', 'LIKE', '%legal_holiday%');
-    })
-    ->count();
+    $employeeId = $payroll->employee->id ?? null;
 
-$specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $payroll->employee->id)
-    ->whereBetween('work_date', [$period->start_date, $period->end_date])
-    ->where(function($query) {
-        $query->where('remarks', 'LIKE', '%Special Holiday%')
-              ->orWhere('status', 'LIKE', '%special_holiday%');
-    })
-    ->count();
+    $legalHolidaysCount = 0;
 
-$data = [
-    'period' => $period->description,
-    'employee_name' => $payroll->employee->full_name ?? '',
-    'daily_rate' => (float) ($payroll->daily_rate ?? 0),
-    'position' => $payroll->employee->position->position_name ?? '',
-    'date_generated' => now()->format('F d, Y'),
-    'days_worked' => (int) ($payroll->days_worked ?? 0),
-    'legal_holidays' => $legalHolidaysCount,
-    'special_holidays' => $specialHolidaysCount,
-    'basic_salary' => (float) ($payroll->basic_salary ?? 0),
-    'gross_pay' => (float) ($payroll->gross_pay ?? 0),
-    'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
-    'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
-    'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
-    'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
-    'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
-    'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
-    'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
-    'sss_ee' => (float) ($contribution->sss_ee ?? 0),
-    'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
-    'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
-    'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
-    'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
-    'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
-    'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
-    'cash_advance' => (float) ($payroll->cash_advance ?? 0),
-    'shortages' => (float) ($payroll->shortages ?? 0),
-    'other_deduction' => (float) ($payroll->other_deduction ?? 0),
-    'other_incentives' => (float) ($payroll->other_incentives ?? 0),
-];
+    if ($employeeId) {
+        $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $employeeId)
+            ->whereBetween('work_date', [$period->start_date, $period->end_date])
+            ->where(function($query) {
+                $query->where('remarks', 'LIKE', '%Legal Holiday%')
+                      ->orWhere('status', 'LIKE', '%legal_holiday%');
+            })
+            ->count();
+    }
 
-preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
-$startDay = (int) ($matches[1] ?? 1);
+    $data = [
+        'period' => $period->description ?? '',
+        'employee_name' => $payroll->employee->full_name ?? '',
+        'daily_rate' => (float) ($payroll->daily_rate ?? 0),
+        'position' => $payroll->employee->position->position_name ?? '',
+        'date_generated' => now()->format('F d, Y'),
 
-$isFirstCutoff = $startDay >= 1 && $startDay <= 15;
-$isSecondCutoff = $startDay >= 16;
+        'days_worked' => (float) ($payroll->days_worked ?? 0),
+        'legal_holidays' => $legalHolidaysCount,
 
-$sss_ee = $isFirstCutoff ? $data['sss_ee'] : 0;
-$philhealth_ee = $isFirstCutoff ? $data['philhealth_ee'] : 0;
-$pagibig_ee = $isFirstCutoff ? $data['pagibig_ee'] : 0;
-$premium_ss = $isFirstCutoff ? $data['premium_voluntary_ss_contribution'] : 0;
+        'basic_salary' => (float) ($payroll->basic_salary ?? 0),
+        'gross_pay' => (float) ($payroll->gross_pay ?? 0),
 
-$sss_salary_loan = $isSecondCutoff ? $data['sss_salary_loan'] : 0;
-$sss_calamity_loan = $isSecondCutoff ? $data['sss_calamity_loan'] : 0;
-$pagibig_salary_loan = $isSecondCutoff ? $data['pagibig_salary_loan'] : 0;
+        'undertime_hours' => (float) ($payroll->undertime_hours ?? 0),
+        'undertime_deduction' => (float) ($payroll->undertime_deduction ?? 0),
 
-$cash_advance = $data['cash_advance'];
-$shortages = $data['shortages'];
-$other_deduction = $data['other_deduction'];
-$other_incentives = $data['other_incentives'];
+        'overtime_salary' => (float) ($payroll->overtime_salary ?? 0),
+        'night_diff_salary' => (float) ($payroll->night_diff_salary ?? 0),
+        'night_diff_ot_salary' => (float) ($payroll->night_diff_ot_salary ?? 0),
+        'rest_day_ot_salary' => (float) ($payroll->rest_day_ot_salary ?? 0),
+        'sunday_ot_salary' => (float) ($payroll->sunday_ot_salary ?? 0),
 
-$total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss + 
-                    $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan + 
-                    $cash_advance + $shortages + $other_deduction;
+        'sss_ee' => (float) ($contribution->sss_ee ?? 0),
+        'philhealth_ee' => (float) ($contribution->philhealth_ee ?? 0),
+        'pagibig_ee' => (float) ($contribution->pagibig_ee ?? 0),
+        'premium_voluntary_ss_contribution' => (float) ($contribution->premium_voluntary_ss_contribution ?? 0),
 
-$final_gross_pay = $data['gross_pay'] + $other_incentives;
-$final_net_pay = $final_gross_pay - $total_deductions;
+        'sss_salary_loan' => (float) ($contribution->sss_salary_loan ?? 0),
+        'sss_calamity_loan' => (float) ($contribution->sss_calamity_loan ?? 0),
+        'pagibig_salary_loan' => (float) ($contribution->pagibig_salary_loan ?? 0),
 
-// Split Paid units to clean out Regular Days vs Legal Holiday credits safely
-$dailyRate = $data['daily_rate'];
-$basicSalary = $data['basic_salary'];
+        'cash_advance' => (float) ($payroll->cash_advance ?? 0),
+        'shortages' => (float) ($payroll->shortages ?? 0),
+        'other_deduction' => (float) ($payroll->other_deduction ?? 0),
+        'other_incentives' => (float) ($payroll->other_incentives ?? 0),
+    ];
 
-$totalPaidUnits = $dailyRate > 0 ? (int)round($basicSalary / $dailyRate) : 0;
+    $startDay = 16;
 
-if ($totalPaidUnits == 15 || ($legalHolidaysCount > 0 && $totalPaidUnits >= $legalHolidaysCount)) {
-    $legalHolidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
-    $calculatedDaysWorked = $totalPaidUnits - $legalHolidayDays;
-} else {
-    $legalHolidayDays = 0;
-    $calculatedDaysWorked = $totalPaidUnits > 0 ? $totalPaidUnits : 14;
-}
+    if (isset($data['period'])) {
+        preg_match('/(\d+)-(\d+)/', $data['period'], $matches);
+        $startDay = (int) ($matches[1] ?? 16);
+    }
+
+    $isFirstCutoff = $startDay >= 1 && $startDay <= 15;
+    $isSecondCutoff = $startDay >= 16;
+
+    $dailyRate = (float) ($data['daily_rate'] ?? 0);
+    $basicSalary = (float) ($data['basic_salary'] ?? 0);
+    $legalHolidaysCount = (int) ($data['legal_holidays'] ?? 0);
+    $undertime_deduction = (float) ($data['undertime_deduction'] ?? 0);
+
+    $totalPaidDays = $dailyRate > 0 ? (int) round($basicSalary / $dailyRate) : 0;
+
+    if ($totalPaidDays == 15 || ($legalHolidaysCount > 0 && $totalPaidDays >= $legalHolidaysCount)) {
+        $holidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
+        $calculatedDaysWorked = $totalPaidDays - $holidayDays;
+    } else {
+        $holidayDays = 0;
+        $calculatedDaysWorked = $totalPaidDays > 0 ? $totalPaidDays : 14;
+    }
+
+    $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
+    $philhealth_ee = $isFirstCutoff ? ($data['philhealth_ee'] ?? 0) : 0;
+    $pagibig_ee = $isFirstCutoff ? ($data['pagibig_ee'] ?? 0) : 0;
+    $premium_ss = $isFirstCutoff ? ($data['premium_voluntary_ss_contribution'] ?? 0) : 0;
+
+    $sss_salary_loan = $isSecondCutoff ? ($data['sss_salary_loan'] ?? 0) : 0;
+    $sss_calamity_loan = $isSecondCutoff ? ($data['sss_calamity_loan'] ?? 0) : 0;
+    $pagibig_salary_loan = $isSecondCutoff ? ($data['pagibig_salary_loan'] ?? 0) : 0;
+
+    $cash_advance = $data['cash_advance'] ?? 0;
+    $shortages = $data['shortages'] ?? 0;
+    $other_deduction = $data['other_deduction'] ?? 0;
+    $other_incentives = $data['other_incentives'] ?? 0;
+
+    $total_deductions = $sss_ee + $philhealth_ee + $pagibig_ee + $premium_ss +
+                        $sss_salary_loan + $sss_calamity_loan + $pagibig_salary_loan +
+                        $cash_advance + $shortages + $other_deduction + $undertime_deduction;
+
+    $final_gross_pay = $data['gross_pay'] ?? 0;
+    $final_net_pay = $final_gross_pay - $total_deductions;
 @endphp
 
 <div class="payslip-page">
 
-<div class="header">
-    <h1>E.A OCAMPO ENTERPRISES</h1>
-    <p>PAYROLL PERIOD: {{ $data['period'] }}</p>
-</div>
+    <div class="header">
+        <h1>E.A OCAMPO ENTERPRISES</h1>
+        <p>PAYROLL PERIOD: {{ $data['period'] ?? '' }}</p>
+    </div>
 
-<table class="no-border">
-    <tr>
-        <td>
-            <strong>Name:</strong>
-            {{ $data['employee_name'] }}
-        </td>
-        <td>
-            <strong>Daily Rate:</strong>
-            PHP {{ number_format($data['daily_rate'], 2) }}
-        </td>
-    </tr>
-    <tr>
-        <td>
-            <strong>Position:</strong>
-            {{ $data['position'] }}
-        </td>
-        <td>
-            <strong>Date:</strong>
-            {{ $data['date_generated'] }}
-        </td>
-    </tr>
-</table>
+    <table class="no-border">
+        <tr>
+            <td><strong>Name:</strong> {{ $data['employee_name'] ?? '' }}</td>
+            <td><strong>Daily Rate:</strong> PHP {{ number_format($dailyRate, 2) }}</td>
+        </tr>
+        <tr>
+            <td><strong>Position:</strong> {{ $data['position'] ?? '' }}</td>
+            <td><strong>Date:</strong> {{ $data['date_generated'] ?? '' }}</td>
+        </tr>
+    </table>
 
-<table class="earnings-table">
-    <tr class="section">
-        <td>Description</td>
-        <td class="right">Amount</td>
-    </tr>
+    <table class="earnings-table">
+        <tr class="section">
+            <td>Description</td>
+            <td class="right">Amount</td>
+        </tr>
 
-    <tr>
-        <td>
-            Basic Salary (
-            {{ $calculatedDaysWorked }} Regular Day{{ $calculatedDaysWorked != 1 ? 's' : '' }}
-            @if($legalHolidayDays > 0)
-                + {{ $legalHolidayDays }} Legal Holiday Credit Credited
-            @endif
-            @if($data['special_holidays'] > 0)
-                and {{ $data['special_holidays'] }} Special Holiday{{ $data['special_holidays'] != 1 ? 's' : '' }}
-            @endif
-            )
-        </td>
-        <td class="right">
-            PHP {{ number_format($data['basic_salary'], 2) }}
-        </td>
-    </tr>
+        <tr>
+            <td>
+                Basic Salary + Holidays ({{ $totalPaidDays }})
+            </td>
+            <td class="right">
+                PHP {{ number_format($data['basic_salary'] ?? 0, 2) }}
+            </td>
+        </tr>
 
-    <tr>
-        <td>
-            Undertime Deduction
-            (PHP {{ number_format($data['daily_rate'] / 8, 2) }}
-            × {{ $data['undertime_hours'] }} hrs)
-        </td>
-        <td class="right">
-            PHP {{ number_format($data['undertime_deduction'], 2) }}
-        </td>
-    </tr>
+        <tr>
+            <td>Regular Overtime Pay</td>
+            <td class="right">PHP {{ number_format($data['overtime_salary'] ?? 0, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Regular Overtime Pay</td>
-        <td class="right">PHP {{ number_format($data['overtime_salary'], 2) }}</td>
-    </tr>
+        <tr>
+            <td>Night Differential Pay</td>
+            <td class="right">PHP {{ number_format($data['night_diff_salary'] ?? 0, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Night Differential Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_salary'], 2) }}</td>
-    </tr>
+        <tr>
+            <td>Night Differential OT Pay</td>
+            <td class="right">PHP {{ number_format($data['night_diff_ot_salary'] ?? 0, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Night Differential OT Pay</td>
-        <td class="right">PHP {{ number_format($data['night_diff_ot_salary'], 2) }}</td>
-    </tr>
+        <tr>
+            <td>Rest Day OT Pay</td>
+            <td class="right">PHP {{ number_format($data['rest_day_ot_salary'] ?? 0, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Rest Day OT Pay</td>
-        <td class="right">PHP {{ number_format($data['rest_day_ot_salary'], 2) }}</td>
-    </tr>
+        <tr>
+            <td>Sunday OT Pay</td>
+            <td class="right">PHP {{ number_format($data['sunday_ot_salary'] ?? 0, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Sunday OT Pay</td>
-        <td class="right">PHP {{ number_format($data['sunday_ot_salary'], 2) }}</td>
-    </tr>
+        <tr>
+            <td>Other Incentives</td>
+            <td class="right">PHP {{ number_format($other_incentives, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Other Incentives</td>
-        <td class="right">PHP {{ number_format($other_incentives, 2) }}</td>
-    </tr>
+        <tr class="bold">
+            <td>GROSS PAY</td>
+            <td class="right">PHP {{ number_format($final_gross_pay, 2) }}</td>
+        </tr>
+    </table>
 
-    <tr class="bold">
-        <td>GROSS PAY</td>
-        <td class="right">PHP {{ number_format($final_gross_pay, 2) }}</td>
-    </tr>
-</table>
+    <table class="deductions-table">
+        <tr class="section">
+            <td colspan="2">DEDUCTIONS</td>
+        </tr>
 
-<table class="deductions-table">
-    <tr class="section">
-        <td colspan="2">DEDUCTIONS</td>
-    </tr>
+        <tr>
+            <td>
+                Undertime Deduction
+                (PHP {{ number_format(($dailyRate / 8), 2) }} × {{ $data['undertime_hours'] ?? 0 }} hrs)
+            </td>
+            <td class="right">PHP {{ number_format($undertime_deduction, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>SSS (EE Share)</td>
-        <td class="right">PHP {{ number_format($sss_ee, 2) }}</td>
-    </tr>
+        <tr>
+            <td>SSS (EE Share)</td>
+            <td class="right">PHP {{ number_format($sss_ee, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>PhilHealth (EE Share)</td>
-        <td class="right">PHP {{ number_format($philhealth_ee, 2) }}</td>
-    </tr>
+        <tr>
+            <td>PhilHealth (EE Share)</td>
+            <td class="right">PHP {{ number_format($philhealth_ee, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Pag-IBIG (EE Share)</td>
-        <td class="right">PHP {{ number_format($pagibig_ee, 2) }}</td>
-    </tr>
+        <tr>
+            <td>Pag-IBIG (EE Share)</td>
+            <td class="right">PHP {{ number_format($pagibig_ee, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>SSS Premium Contribution</td>
-        <td class="right">PHP {{ number_format($premium_ss, 2) }}</td>
-    </tr>
+        <tr>
+            <td>SSS Premium Contribution</td>
+            <td class="right">PHP {{ number_format($premium_ss, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>SSS Salary Loan</td>
-        <td class="right">PHP {{ number_format($sss_salary_loan, 2) }}</td>
-    </tr>
+        <tr>
+            <td>SSS Salary Loan</td>
+            <td class="right">PHP {{ number_format($sss_salary_loan, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>SSS Calamity Loan</td>
-        <td class="right">PHP {{ number_format($sss_calamity_loan, 2) }}</td>
-    </tr>
+        <tr>
+            <td>SSS Calamity Loan</td>
+            <td class="right">PHP {{ number_format($sss_calamity_loan, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Pag-IBIG Loan</td>
-        <td class="right">PHP {{ number_format($pagibig_salary_loan, 2) }}</td>
-    </tr>
+        <tr>
+            <td>Pag-IBIG Loan</td>
+            <td class="right">PHP {{ number_format($pagibig_salary_loan, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Cash Advance</td>
-        <td class="right">PHP {{ number_format($cash_advance, 2) }}</td>
-    </tr>
+        <tr>
+            <td>Cash Advance</td>
+            <td class="right">PHP {{ number_format($cash_advance, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Shortages</td>
-        <td class="right">PHP {{ number_format($shortages, 2) }}</td>
-    </tr>
+        <tr>
+            <td>Shortages</td>
+            <td class="right">PHP {{ number_format($shortages, 2) }}</td>
+        </tr>
 
-    <tr>
-        <td>Other Deduction</td>
-        <td class="right">PHP {{ number_format($other_deduction, 2) }}</td>
-    </tr>
+        <tr>
+            <td>Other Deduction</td>
+            <td class="right">PHP {{ number_format($other_deduction, 2) }}</td>
+        </tr>
 
-    <tr class="bold">
-        <td>TOTAL DEDUCTIONS</td>
-        <td class="right">PHP {{ number_format($total_deductions, 2) }}</td>
-    </tr>
-</table>
+        <tr class="bold">
+            <td>TOTAL DEDUCTIONS</td>
+            <td class="right">PHP {{ number_format($total_deductions, 2) }}</td>
+        </tr>
+    </table>
 
-<table>
-    <tr class="net">
-        <td>NET PAY</td>
-        <td class="right">
-            PHP {{ number_format($final_net_pay, 2) }}
-        </td>
-    </tr>
-</table>
+    <table>
+        <tr class="net">
+            <td>NET PAY</td>
+            <td class="right">PHP {{ number_format($final_net_pay, 2) }}</td>
+        </tr>
+    </table>
 
-<table class="no-border signature">
-    <tr>
-        <td class="center">
-            _________________________<br>
-            Authorized Signature
-        </td>
-        <td class="center">
-            _________________________<br>
-            Employee Signature
-        </td>
-    </tr>
-</table>
+    <table class="no-border signature">
+        <tr>
+            <td class="center">
+                _________________________<br>
+                Authorized Signature
+            </td>
+            <td class="center">
+                _________________________<br>
+                Employee Signature
+            </td>
+        </tr>
+    </table>
 
-<div class="footer">
-    This payslip is system generated.
-</div>
+    <div class="footer">
+        This payslip is system generated.
+    </div>
 
 </div>
 
