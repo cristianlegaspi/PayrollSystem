@@ -12,12 +12,14 @@ class ThirteenthMonthOverride extends Model
         'year',
         'month',
         'gross_pay_override',
+        'remarks',
     ];
 
     protected $casts = [
         'year' => 'integer',
         'month' => 'integer',
         'gross_pay_override' => 'float',
+        
     ];
 
     /**

@@ -3,12 +3,15 @@
 namespace App\Filament\Pages;
 
 use App\Models\Employee;
+use App\Models\ThirteenthMonthOverride;
 use Carbon\Carbon;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Forms\Contracts\HasForms;
+use Filament\Notifications\Notification;
 use Filament\Pages\Page;
+use Filament\Tables\Columns\SelectColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Concerns\InteractsWithTable;
 use Filament\Tables\Contracts\HasTable;
@@ -38,6 +41,25 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
      */
     protected const STANDARD_DIVIDEND = 12;
 
+    /**
+     * Sentinel "month" values used ONLY for storing remarks,
+     * so they never collide with real monthly gross_pay_override rows (1-12).
+     */
+    protected const MID_YEAR_REMARKS_MONTH = 0;
+
+    protected const YEAR_END_REMARKS_MONTH = 13;
+
+    /**
+     * Dropdown options for the remarks field.
+     */
+    protected const REMARKS_OPTIONS = [
+        'Credited' => 'Credited',
+        'Not Credited' => 'Not Credited',
+        'Pending' => 'Pending',
+        'Released via Payroll' => 'Released via Payroll',
+        'Withheld' => 'Withheld',
+    ];
+
     public int | string $year;
 
     /**
@@ -53,6 +75,13 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
      * 2. Payroll gross_pay
      */
     public array $thirteenthMonthValues = [];
+
+    /**
+     * Holds ['employee_id' => ['mid_year' => ?string, 'year_end' => ?string]].
+     * Dropdown edits update this in-memory only; nothing hits the DB
+     * until "Save Remarks" is clicked.
+     */
+    public array $remarksValues = [];
 
     public static function canAccess(): bool
     {
@@ -76,6 +105,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         $this->dividend = self::STANDARD_DIVIDEND;
 
         $this->preloadThirteenthMonthValues();
+        $this->preloadRemarksValues();
     }
 
     protected function employeeIsResigned(Employee $employee): bool
@@ -167,6 +197,55 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
         }
     }
 
+    /**
+     * Loads saved Mid-Year / Year-End remarks for the current year.
+     * Stored on the thirteenth_month_overrides table using sentinel
+     * "month" values (0 = mid-year, 13 = year-end) so real monthly
+     * gross_pay_override rows (1-12) are never touched.
+     */
+    public function preloadRemarksValues(): void
+    {
+        $this->remarksValues = [];
+
+        $overrides = ThirteenthMonthOverride::query()
+            ->where('year', (int) $this->year)
+            ->whereIn('month', [self::MID_YEAR_REMARKS_MONTH, self::YEAR_END_REMARKS_MONTH])
+            ->get();
+
+        foreach ($overrides as $override) {
+            $period = $override->month === self::MID_YEAR_REMARKS_MONTH ? 'mid_year' : 'year_end';
+
+            $this->remarksValues[$override->employee_id][$period] = $override->remarks;
+        }
+    }
+
+    /**
+     * Persists both Mid-Year and Year-End remarks for a single employee
+     * from the current in-memory $remarksValues state. Triggered ONLY
+     * by the explicit "Save Remarks" button — dropdown changes alone
+     * do NOT hit the database.
+     */
+    public function persistEmployeeRemarks(int $employeeId): void
+    {
+        $periods = [
+            'mid_year' => self::MID_YEAR_REMARKS_MONTH,
+            'year_end' => self::YEAR_END_REMARKS_MONTH,
+        ];
+
+        foreach ($periods as $period => $month) {
+            $value = $this->remarksValues[$employeeId][$period] ?? null;
+
+            $override = ThirteenthMonthOverride::firstOrNew([
+                'employee_id' => $employeeId,
+                'year' => (int) $this->year,
+                'month' => $month,
+            ]);
+
+            $override->remarks = $value;
+            $override->save();
+        }
+    }
+
     public function table(Table $table): Table
     {
         return $table
@@ -209,7 +288,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         return match (strtolower(trim((string) $state))) {
                             'active' => 'success',
                             'resigned' => 'danger',
-                            default => 'gray',
+                             default => 'gray',
                         };
                     })
                     ->searchable()
@@ -253,6 +332,22 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeMidYearPay($record->id)),
 
+                SelectColumn::make('mid_year_remarks')
+                    ->label('Mid-Year Remarks')
+                    ->options(self::REMARKS_OPTIONS)
+                    ->placeholder('Select remarks')
+                    ->extraAttributes([
+                        'class' => 'w-40 min-w-[160px]',
+                    ])
+                    ->getStateUsing(fn (Employee $record) => $this->remarksValues[$record->id]['mid_year'] ?? null)
+                    ->updateStateUsing(function (Employee $record, $state) {
+                        // In-memory only — does NOT write to the database.
+                        // DB write happens only via the "Save Remarks" button.
+                        $this->remarksValues[$record->id]['mid_year'] = $state ?: null;
+
+                        return $state;
+                    }),
+
                 TextColumn::make('year_end_pay')
                     ->label('Year-End Pay')
                     ->description('Jul-Dec ÷12')
@@ -264,6 +359,22 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                         'class' => 'w-36 min-w-[140px] font-mono',
                     ])
                     ->state(fn (Employee $record) => $this->calculateEmployeeYearEndPay($record->id)),
+
+                SelectColumn::make('year_end_remarks')
+                    ->label('Year-End Remarks')
+                    ->options(self::REMARKS_OPTIONS)
+                    ->placeholder('Select remarks')
+                    ->extraAttributes([
+                        'class' => 'w-40 min-w-[160px]',
+                    ])
+                    ->getStateUsing(fn (Employee $record) => $this->remarksValues[$record->id]['year_end'] ?? null)
+                    ->updateStateUsing(function (Employee $record, $state) {
+                        // In-memory only — does NOT write to the database.
+                        // DB write happens only via the "Save Remarks" button.
+                        $this->remarksValues[$record->id]['year_end'] = $state ?: null;
+
+                        return $state;
+                    }),
 
                 TextColumn::make('whole_year_pay')
                     ->label('Whole Year Pay')
@@ -278,6 +389,20 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     ->state(fn (Employee $record) => $this->calculateEmployeeWholeYearPay($record->id)),
             ])
             ->recordActions([
+                Action::make('saveRemarks')
+                    ->label('Save Remarks')
+                    ->icon('heroicon-m-check-circle')
+                    ->color('danger')
+                    ->button()
+                    ->action(function (Employee $record) {
+                        $this->persistEmployeeRemarks($record->id);
+
+                        Notification::make()
+                            ->title("Remarks saved for {$record->full_name}")
+                            ->success()
+                            ->send();
+                    }),
+
                 Action::make('printEmployee')
                     ->label('Print')
                     ->icon('heroicon-m-printer')
@@ -486,6 +611,9 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
 
                 // Old key retained so existing print Blade will not break.
                 'thirteenth_pay' => $wholeYearPay,
+
+                'mid_year_remarks' => $this->remarksValues[$employee->id]['mid_year'] ?? null,
+                'year_end_remarks' => $this->remarksValues[$employee->id]['year_end'] ?? null,
             ];
         }
 
@@ -536,6 +664,7 @@ class CalculateThirteenthMonth extends Page implements HasTable, HasForms
                     $this->dividend = self::STANDARD_DIVIDEND;
 
                     $this->preloadThirteenthMonthValues();
+                    $this->preloadRemarksValues();
 
                     $this->resetTable();
                 })

@@ -189,7 +189,9 @@
 
             <th>Total Gross Pay</th>
             <th>Mid-Year Pay<br><span class="small-text">Jan-Jun ÷ {{ $dividend }}</span></th>
+            <th>Mid-Year Remarks</th> {{-- ADDED --}}
             <th>Year-End Pay<br><span class="small-text">Jul-Dec ÷ {{ $dividend }}</span></th>
+            <th>Year-End Remarks</th> {{-- ADDED --}}
             <th>Whole Year Pay<br><span class="small-text">Jan-Dec ÷ {{ $dividend }}</span></th>
             <th style="width:110px;">Signature Receipt</th>
         </tr>
@@ -233,8 +235,19 @@
                     {{ $formatMoney($midYearPay) }}
                 </td>
 
+                {{-- ADDED --}}
+                <td>
+                    {{ $emp['mid_year_remarks'] ?? '-' }}
+                </td>
+
+
+
                 <td class="summary-cell year-end-pay">
                     {{ $formatMoney($yearEndPay) }}
+                </td>
+
+                <td>
+                    {{ $emp['year_end_remarks'] ?? '-' }}
                 </td>
 
                 <td class="summary-cell whole-pay">
