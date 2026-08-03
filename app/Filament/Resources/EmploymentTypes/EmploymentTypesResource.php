@@ -55,8 +55,8 @@ class EmploymentTypesResource extends Resource
     {
         return [
             'index' => ListEmploymentTypes::route('/'),
-            'create' => CreateEmploymentTypes::route('/create'),
-            'view' => ViewEmploymentTypes::route('/{record}'),
+            // 'create' => CreateEmploymentTypes::route('/create'),
+            // 'view' => ViewEmploymentTypes::route('/{record}'),
             'edit' => EditEmploymentTypes::route('/{record}/edit'),
         ];
     }

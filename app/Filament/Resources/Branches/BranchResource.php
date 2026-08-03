@@ -55,7 +55,7 @@ class BranchResource extends Resource
     {
         return [
             'index' => ListBranches::route('/'),
-            'create' => CreateBranch::route('/create'),
+            // 'create' => CreateBranch::route('/create'),
             // 'view' => ViewBranch::route('/{record}'),
             'edit' => EditBranch::route('/{record}/edit'),
         ];

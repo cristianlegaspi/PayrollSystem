@@ -28,10 +28,12 @@ class DailyTimeRecordResource extends Resource
     protected static ?string $recordTitleAttribute = 'DailyTimeRecord';
 
     protected static string | UnitEnum | null $navigationGroup = 'Attendance Management';
+
+     protected static ?int $navigationSort = 1;
     
     protected static ?string $navigationLabel = 'Daily Time Record (DTR)'; // Custom label
 
-    protected static ?int $navigationSort = 1;
+
 
     public static function form(Schema $schema): Schema
     {
@@ -59,7 +61,7 @@ class DailyTimeRecordResource extends Resource
     {
         return [
             'index' => ListDailyTimeRecords::route('/'),
-            'create' => CreateDailyTimeRecord::route('/create'),
+            // 'create' => CreateDailyTimeRecord::route('/create'),
             // 'view' => ViewDailyTimeRecord::route('/{record}'),
             // 'edit' => EditDailyTimeRecord::route('/{record}/edit'),
         ];

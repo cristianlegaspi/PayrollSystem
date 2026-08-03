@@ -56,7 +56,7 @@ class EmploymentStatusResource extends Resource
     {
         return [
             'index' => ListEmploymentStatuses::route('/'),
-            'create' => CreateEmploymentStatus::route('/create'),
+            // 'create' => CreateEmploymentStatus::route('/create'),
             // 'view' => ViewEmploymentStatus::route('/{record}'),
             'edit' => EditEmploymentStatus::route('/{record}/edit'),
         ];

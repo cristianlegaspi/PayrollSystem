@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use App\Models\CashAdvance;
+use App\Models\LeaveBalance;
 
 class Employee extends Model
 {
@@ -84,6 +85,21 @@ class Employee extends Model
     public function getCashAdvanceBalanceAttribute(): float
     {
         return CashAdvance::balanceForEmployee($this->id);
+    }
+
+    protected static function booted()
+    {
+        static::created(function ($employee) {
+
+            LeaveBalance::create([
+                'employee_id' => $employee->id,
+                'year' => now()->year,
+                'annual_credit' => 5,
+                'used_credit' => 0,
+                'remaining_credit' => 5,
+            ]);
+
+        });
     }
     
 }

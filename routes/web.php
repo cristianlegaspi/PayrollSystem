@@ -13,6 +13,9 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\DTRExport;
 use App\Imports\DTRImport;
 use App\Http\Controllers\CashAdvancePrintController;
+use App\Http\Controllers\LeaveSummaryReportController;
+use App\Http\Controllers\LeaveEmployeeReportController;
+use App\Http\Controllers\LeaveApplicationPrintController;
 
 
 
@@ -180,3 +183,14 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/cash-advances/print', [CashAdvancePrintController::class, 'print'])
         ->name('cash-advances.print');
 });
+
+Route::get('/leave/summary', LeaveSummaryReportController::class)
+    ->name('leave.summary');
+
+Route::get('/leave/employee/{employee}', LeaveEmployeeReportController::class)
+    ->name('leave.employee');
+
+Route::get(
+    '/leave-applications/{leaveApplication}/print',
+    LeaveApplicationPrintController::class
+)->name('leave.print');

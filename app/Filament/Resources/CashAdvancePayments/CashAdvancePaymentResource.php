@@ -27,7 +27,7 @@ class CashAdvancePaymentResource extends Resource
 
     protected static string | UnitEnum | null $navigationGroup = 'Cash Advance Management';
 
-    protected static ?int $navigationSort = 2;
+    protected static ?int $navigationSort = 10;
 
     public static function form(Schema $schema): Schema
     {
@@ -55,8 +55,8 @@ class CashAdvancePaymentResource extends Resource
     {
         return [
             'index' => ListCashAdvancePayments::route('/'),
-            'create' => CreateCashAdvancePayment::route('/create'),
-            'view' => ViewCashAdvancePayment::route('/{record}'),
+            // 'create' => CreateCashAdvancePayment::route('/create'),
+            // 'view' => ViewCashAdvancePayment::route('/{record}'),
             'edit' => EditCashAdvancePayment::route('/{record}/edit'),
         ];
     }

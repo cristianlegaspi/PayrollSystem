@@ -56,7 +56,7 @@ class ContributionResource extends Resource
     {
         return [
             'index' => ListContributions::route('/'),
-            'create' => CreateContribution::route('/create'),
+            // 'create' => CreateContribution::route('/create'),
             // 'view' => ViewContribution::route('/{record}'),
             'edit' => EditContribution::route('/{record}/edit'),
         ];

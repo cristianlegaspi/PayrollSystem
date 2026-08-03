@@ -58,8 +58,8 @@ class CashAdvanceResource extends Resource
     {
         return [
             'index' => ListCashAdvances::route('/'),
-            'create' => CreateCashAdvance::route('/create'),
-            'view' => ViewCashAdvance::route('/{record}'),
+            // 'create' => CreateCashAdvance::route('/create'),
+            // 'view' => ViewCashAdvance::route('/{record}'),
             'edit' => EditCashAdvance::route('/{record}/edit'),
         ];
     }
