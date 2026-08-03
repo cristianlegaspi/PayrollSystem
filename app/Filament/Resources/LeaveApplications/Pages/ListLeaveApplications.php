@@ -11,7 +11,7 @@ class ListLeaveApplications extends ListRecords
 {
     protected static string $resource = LeaveApplicationResource::class;
 
-    protected ?string $heading = 'Leave Application Management';
+    protected ?string $heading = 'Leave Management';
 
     protected ?string $subheading = 'Overview of All Leave Applications';
 
