@@ -341,7 +341,7 @@ Prepared By
 
 <br><br>
 
-HR / Payroll Officer
+Assigned Secretary
 
 </div>
 
@@ -355,7 +355,7 @@ Checked By
 
 <br><br>
 
-Human Resource Department
+Payroll Officer
 
 </div>
 
