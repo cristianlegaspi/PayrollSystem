@@ -12,9 +12,7 @@ use App\Models\LeaveBalance;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Utilities\Set;
 use Carbon\Carbon;
-
-
-
+use Illuminate\Database\Eloquent\Builder;
 
 class LeaveApplicationForm
 {
@@ -24,20 +22,33 @@ class LeaveApplicationForm
             ->columns(2)
             ->components([
 
-                Select::make('employee_id')
-                ->relationship('employee', 'full_name')
-                ->searchable()
-                ->preload()
-                ->live()
-                ->afterStateUpdated(function ($state, Set $set) {
+              Select::make('employee_id')
+                    ->relationship(
+                        name: 'employee',
+                        titleAttribute: 'full_name',
+                        modifyQueryUsing: fn (Builder $query) => $query
+                            ->where('status', 'Active')
+                            ->orderBy('full_name')
+                    )
+                    ->searchable()
+                    ->preload()
+                    ->live()
+                    ->afterStateUpdated(function ($state, Set $set) {
 
-                    $balance = LeaveBalance::where('employee_id', $state)
-                        ->where('year', now()->year)
-                        ->first();
+                        $balance = LeaveBalance::where('employee_id', $state)
+                            ->where('year', now()->year)
+                            ->first();
 
-                    $set('remaining_leave', $balance?->remaining_credit ?? 5);
-                })
-                ->required(),
+                        $set('remaining_leave', $balance?->remaining_credit ?? 5);
+                    })
+                    ->required(),
+
+
+
+
+
+
+
 
                 TextInput::make('remaining_leave')
                     ->label('Remaining Leave Credits')
