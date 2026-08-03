@@ -25,7 +25,7 @@ class LeaveApplicationResource extends Resource
 
     protected static ?string $recordTitleAttribute = 'LeaveApplication';
 
-    protected static string | UnitEnum | null $navigationGroup = 'Leave Application Management';
+    protected static string | UnitEnum | null $navigationGroup = 'Leave Management';
 
     protected static ?int $navigationSort = 1;
 
