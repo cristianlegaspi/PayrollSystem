@@ -87,6 +87,17 @@
             border: none;
         }
 
+        /*
+         * By default, browsers/print engines treat <tfoot> as a repeating
+         * footer and print it at the bottom of EVERY page the table spans
+         * across, not just the true end of the table. Forcing it back to
+         * a normal row group keeps "TOTAL MASTER SUMMARY" appearing only
+         * once, on the last page where the table actually ends.
+         */
+        tfoot {
+            display: table-row-group;
+        }
+
         .header-title {
             text-align: center;
             margin: 0 0 15px 0;
@@ -189,9 +200,9 @@
 
             <th>Total Gross Pay</th>
             <th>Mid-Year Pay<br><span class="small-text">Jan-Jun ÷ {{ $dividend }}</span></th>
-            <th>Mid-Year Remarks</th> {{-- ADDED --}}
+            <th>Mid-Year Remarks</th>
             <th>Year-End Pay<br><span class="small-text">Jul-Dec ÷ {{ $dividend }}</span></th>
-            <th>Year-End Remarks</th> {{-- ADDED --}}
+            <th>Year-End Remarks</th>
             <th>Whole Year Pay<br><span class="small-text">Jan-Dec ÷ {{ $dividend }}</span></th>
             <th style="width:110px;">Signature Receipt</th>
         </tr>
@@ -235,12 +246,9 @@
                     {{ $formatMoney($midYearPay) }}
                 </td>
 
-                {{-- ADDED --}}
                 <td>
                     {{ $emp['mid_year_remarks'] ?? '-' }}
                 </td>
-
-
 
                 <td class="summary-cell year-end-pay">
                     {{ $formatMoney($yearEndPay) }}
@@ -281,9 +289,13 @@
                 {{ $formatMoney($grandMidYearPay) }}
             </td>
 
+            <td></td>
+
             <td class="money-cell year-end-pay">
                 {{ $formatMoney($grandYearEndPay) }}
             </td>
+
+            <td></td>
 
             <td class="money-cell whole-pay">
                 {{ $formatMoney($grandWholeYearPay) }}
