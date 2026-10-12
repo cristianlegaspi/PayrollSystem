@@ -23,6 +23,18 @@ class PayrollPeriodsTable
     public static function configure(Table $table): Table
     {
         return $table
+
+         ->defaultSort(function ($query) {
+                return $query
+                    ->orderByDesc('start_date')
+                    ->orderByDesc('id');
+            })
+
+
+
+
+
+
             ->columns([
                 TextColumn::make('description')
                     ->label('Payroll Period')
@@ -149,7 +161,6 @@ class PayrollPeriodsTable
                             ->danger()
                             ->send();
                     }),
-
 
             ])
 

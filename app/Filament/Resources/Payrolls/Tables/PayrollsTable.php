@@ -17,15 +17,21 @@ class PayrollsTable
     {
         return $table
 
-            // ->modifyQueryUsing(function ($query) {
-            //     // Default: show Pending only
-            //     if (! request()->has('tableFilters')) {
-            //         $query->whereHas('payrollPeriod', function ($q) {
-            //             $q->where('status', 'Finalized')
-            //               ->where('remarks', 'Pending');
-            //         });
-            //     }
-            // })
+         ->defaultSort(function ($query) {
+                return $query
+                    ->orderByDesc(
+                        PayrollPeriod::query()
+                            ->select('start_date')
+                            ->whereColumn(
+                                'payroll_periods.id',
+                                'payrolls.payroll_period_id'
+                            )
+                            ->limit(1)
+                    )
+                    ->orderByDesc('payrolls.id');
+            })
+
+
 
             ->columns([
                 TextColumn::make('employee.full_name')
@@ -58,28 +64,7 @@ class PayrollsTable
             ])
 
             ->filters([
-                // SelectFilter::make('payroll_period_id')
-                //     ->label('Approved Payroll Period')
-                //     ->options(function () {
-                //         return PayrollPeriod::query()
-                //             ->where('status', 'Finalized')
-                //             ->where('remarks', 'Approved')
-                //             ->pluck('description', 'id')
-                //             ->toArray();
-                //     })
-                //     ->query(function ($query, array $data) {
-
-                //         if (! filled($data['value'])) {
-                //             // If no filter selected → revert to Pending only
-                //             return $query->whereHas('payrollPeriod', function ($q) {
-                //                 $q->where('status', 'Finalized')
-                //                   ->where('remarks', 'Pending');
-                //             });
-                //         }
-
-                //         // If selected → show Approved
-                //         return $query->where('payroll_period_id', $data['value']);
-                //     }),
+              
             ])
 
             ->recordActions([
@@ -92,10 +77,7 @@ class PayrollsTable
             ])
 
             ->toolbarActions([
-                // BulkActionGroup::make([
-                //     DeleteBulkAction::make(),
-                // ])
-                // ->visible(fn () => in_array(auth()->user()->role->role_name, ['Admin', 'Super Admin'])),
+                
             ]);
     }
 }
