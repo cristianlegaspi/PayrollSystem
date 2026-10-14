@@ -278,16 +278,28 @@ th {
 
     // Same holiday-day logic as the individual payslip.
     // CAUTION: The 15-day fallback assumes a holiday even with no DTR holiday.
-    if ($totalPaidDays == 15 || (
-        $legalHolidaysCount > 0 && $totalPaidDays >= $legalHolidaysCount
-    )) {
-        $holidayDays = $legalHolidaysCount > 0 ? $legalHolidaysCount : 1;
-        $holidayDays = min($holidayDays, $totalPaidDays);
-        $calculatedDaysWorked = max(0, $totalPaidDays - $holidayDays);
-    } else {
-        $holidayDays = 0;
-        $calculatedDaysWorked = $totalPaidDays > 0 ? $totalPaidDays : 14;
-    }
+    if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
+
+    // Count only actual holidays recorded in the DTR
+    $holidayDays = min(
+        $legalHolidaysCount,
+        $totalPaidDays
+    );
+
+    $calculatedDaysWorked = max(
+        0,
+        $totalPaidDays - $holidayDays
+    );
+
+} else {
+
+    // No holiday recorded
+    $holidayDays = 0;
+
+    // All paid days are regular working days
+    $calculatedDaysWorked = max(0, $totalPaidDays);
+
+}
 
     // Presentation-only split; preserve saved gross pay and other values.
     // Assumes each holiday credit inside basic_salary is one daily rate.

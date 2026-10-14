@@ -167,36 +167,31 @@
     | 14 regular working days
     */
 
-    if (
-        $totalPaidDays == 15
-        || (
-            $legalHolidaysCount > 0
-            && $totalPaidDays >= $legalHolidaysCount
-        )
-    ) {
+    // Count holidays only if recorded in the DTR
+if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
 
-        $holidayDays = $legalHolidaysCount > 0
-            ? $legalHolidaysCount
-            : 1;
+    $holidayDays = min(
+        $legalHolidaysCount,
+        $totalPaidDays
+    );
 
-        $holidayDays = min(
-            $holidayDays,
-            $totalPaidDays
-        );
+    $calculatedDaysWorked = max(
+        0,
+        $totalPaidDays - $holidayDays
+    );
 
-        $calculatedDaysWorked = max(
-            0,
-            $totalPaidDays - $holidayDays
-        );
+} else {
 
-    } else {
+    // No holiday recorded in DTR
+    $holidayDays = 0;
 
-        $holidayDays = 0;
+    // All paid days are regular working days
+    $calculatedDaysWorked = max(
+        0,
+        $totalPaidDays
+    );
 
-        $calculatedDaysWorked = $totalPaidDays > 0
-            ? $totalPaidDays
-            : 14;
-    }
+}
 
     /*
     |--------------------------------------------------------------------------

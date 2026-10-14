@@ -47,30 +47,31 @@ class PayrollInfolist
         }
 
         // Maintain the same logic as the existing payslip.
-        if (
-            $totalPaidDays === 15
-            || ($holidayCount > 0 && $totalPaidDays >= $holidayCount)
-        ) {
-            $holidayDays = $holidayCount > 0
-                ? $holidayCount
-                : 1;
+       // Count holidays only if recorded in DTR
+                if ($holidayCount > 0 && $totalPaidDays > 0) {
 
-            $holidayDays = min($holidayDays, $totalPaidDays);
-        } else {
-            $holidayDays = 0;
-        }
+                    $holidayDays = min($holidayCount, $totalPaidDays);
 
-        $regularDays = max(0, $totalPaidDays - $holidayDays);
+                } else {
 
-        $holidaySalary = round($holidayDays * $dailyRate, 2);
-        $regularSalary = round($combinedSalary - $holidaySalary, 2);
+                    // No holiday recorded in DTR
+                    $holidayDays = 0;
 
-        return [
-            'regular_days' => $regularDays,
-            'holiday_days' => $holidayDays,
-            'basic_salary' => $regularSalary,
-            'holiday_salary' => $holidaySalary,
-        ];
+                }
+
+                // Calculate regular working days
+                $regularDays = max(0, $totalPaidDays - $holidayDays);
+
+                // Calculate salary
+                $holidaySalary = round($holidayDays * $dailyRate, 2);
+                $regularSalary = round($combinedSalary - $holidaySalary, 2);
+
+                return [
+                    'regular_days'   => $regularDays,
+                    'holiday_days'   => $holidayDays,
+                    'basic_salary'   => $regularSalary,
+                    'holiday_salary' => $holidaySalary,
+                ];
     }
 
     public static function configure(Schema $schema): Schema
