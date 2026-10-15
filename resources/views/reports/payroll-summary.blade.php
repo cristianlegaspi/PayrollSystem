@@ -4,45 +4,35 @@
     <meta charset="utf-8">
     <title>Payroll Summary</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            font-size: 10px;
+        /* Dompdf / A3 landscape: 28 report columns */
+        @page { size: A3 landscape; margin: 8mm 7mm; }
+        * { box-sizing: border-box; }
+        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 8px; margin: 0; }
+        h3 { font-size: 12px; }
+        h4 { font-size: 9px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 9px; }
+        th, td { border: 0.5px solid #444; padding: 2px 2px; vertical-align: middle; }
+        th { background: #f0f0f0; font-weight: bold; text-align: center; }
+        td { text-align: right; }
+        .text-left { text-align: left; }
+        .bold { font-weight: bold; }
+        .page-break { page-break-after: always; }
+        .grand-summary { table-layout: fixed; font-size: 7.1px; }
+        .grand-summary th, .grand-summary td { overflow-wrap: break-word; word-wrap: break-word; }
+        .detail-report { table-layout: fixed; font-size: 6px; }
+        .detail-report th { font-size: 5.8px; line-height: 1.12; }
+        .detail-report td { font-size: 6.1px; line-height: 1.15; }
+        .detail-report th, .detail-report td {
+            padding: 2px 1px;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
         }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-        }
-        th,
-        td {
-            border: 1px solid #000;
-            padding: 4px;
-        }
-        th {
-            text-align: center;
-            font-weight: bold;
-            background-color: #f2f2f2;
-        }
-        td {
-            text-align: right;
-        }
-        .text-left {
-            text-align: left;
-        }
-        .bold {
-            font-weight: bold;
-        }
-        .page-break {
-            page-break-after: always;
-        }
-        .signature-line {
-            border-top: 1px solid #000;
-            width: 200px;
-            margin-top: 40px;
-        }
-        .no-border td {
-            border: none;
-        }
+        .detail-report td:first-child, .detail-report th:first-child { text-align: left; }
+        .detail-report td:last-child, .detail-report th:last-child { text-align: center; }
+        .detail-report thead { display: table-header-group; }
+        .detail-report tr { page-break-inside: avoid; }
+        .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 35px; }
+        .no-border td { border: none; }
     </style>
 </head>
 <body>
@@ -130,7 +120,7 @@
         $isFirst = $startDay >= 1 && $startDay <= 15;
         $isSecond = $startDay >= 16;
     @endphp
-    <table>
+    <table class="grand-summary">
         <thead>
             <tr>
                 <th class="text-left">Branch</th>
@@ -437,7 +427,14 @@
             $admin = array_fill_keys($columns, 0);
             $field = array_fill_keys($columns, 0);
         @endphp
-        <table>
+        <table class="detail-report">
+            <colgroup>
+                <col style="width: 9%">
+                @for ($columnIndex = 0; $columnIndex < 26; $columnIndex++)
+                    <col style="width: 3.3077%">
+                @endfor
+                <col style="width: 5%">
+            </colgroup>
             <thead>
                 <tr>
                     <th class="text-left">Employee Name</th>
