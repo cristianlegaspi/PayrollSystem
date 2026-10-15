@@ -4,35 +4,33 @@
     <meta charset="utf-8">
     <title>Payroll Summary</title>
     <style>
-        /* Dompdf / A3 landscape: 28 report columns */
-        @page { size: A4 landscape; margin: 6mm 6mm; }
+        /* Single-table payroll report, compact Legal landscape. */
+        @page { size: legal landscape; margin: 4mm 4mm; }
         * { box-sizing: border-box; }
-        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 9px; margin: 0; }
-        h3 { font-size: 12px; }
-        h4 { font-size: 9px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 9px; }
-        th, td { border: 0.5px solid #444; padding: 2px 2px; vertical-align: middle; }
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 8px; margin: 0; }
+        h3 { font-size: 11px; margin: 0 0 3px; }
+        h4 { font-size: 9px; margin: 2px 0 6px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 5px; }
+        th, td { border: 0.5px solid #444; padding: 2px 1px; vertical-align: middle; }
         th { background: #f0f0f0; font-weight: bold; text-align: center; }
         td { text-align: right; }
         .text-left { text-align: left; }
         .bold { font-weight: bold; }
         .page-break { page-break-after: always; }
-        .grand-summary { table-layout: fixed; font-size: 6.7px; }
+        .grand-summary { table-layout: fixed; font-size: 7px; }
         .grand-summary th, .grand-summary td { overflow-wrap: break-word; word-wrap: break-word; }
-        .detail-report { table-layout: fixed; font-size: 8.2px; margin-top: 3px; }
-        .detail-report th { font-size: 8px; line-height: 1.18; }
-        .detail-report td { font-size: 8.4px; line-height: 1.18; white-space: nowrap; }
-        .detail-report th, .detail-report td { padding: 3px 2px; word-wrap: break-word; overflow-wrap: break-word; }
-        .detail-report th:first-child, .detail-report td:first-child { width: 16%; text-align: left; white-space: normal; }
+        /* 28 columns in one table; numeric values stay on one line. */
+        .detail-report { table-layout: fixed; font-size: 7.6px; margin-top: 5px; }
+        .detail-report th { font-size: 7px; line-height: 1.06; white-space: normal; }
+        .detail-report td { font-size: 7.5px; line-height: 1.12; white-space: nowrap; }
+        .detail-report th, .detail-report td { padding: 2px 1px; }
+        .detail-report td:first-child, .detail-report th:first-child {
+            text-align: left; white-space: normal; overflow-wrap: break-word;
+        }
+        .detail-report td:last-child, .detail-report th:last-child { text-align: center; }
         .detail-report thead { display: table-header-group; }
         .detail-report tr { page-break-inside: avoid; }
-        .branch-page { page-break-before: always; }
-        .branch-caption { margin: 3px 0 6px; }
-        .brand { margin: 0; text-align: center; }
-        .section-title { text-align: left; font-size: 10px; margin: 9px 0 2px; }
-        .signature-table { margin-top: 12px; }
-        .total-row { background: #f4f4f4; }
-        .signature-line { border-top: 1px solid #000; width: 200px; margin-top: 35px; }
+        .signature-line { border-top: 1px solid #000; width: 180px; margin-top: 22px; }
         .no-border td { border: none; }
     </style>
 </head>
@@ -388,11 +386,14 @@
         </tfoot>
     </table>
 </div>
-{{-- INDIVIDUAL BRANCH DETAILS: Two readable tables per branch --}}
+{{-- INDIVIDUAL BRANCH DETAILS --}}
 @foreach ($groupedPayrolls as $branchName => $payrolls)
-    <div class="branch-page">
-        <h3 class="center brand">E.A OCAMPO ENTERPRISES</h3>
-        <div class="branch-caption">Payroll Summary - {{ $period->description }}<br>Branch: {{ $branchName ?? 'No Branch' }}</div>
+    <div class="{{ ! $loop->last ? 'page-break' : '' }}">
+        <h3 style="text-align: center; margin-bottom: 0;">
+            E.A OCAMPO ENTERPRISES
+        </h3>
+        Payroll Summary - {{ $period->description }}<br>
+        Branch: {{ $branchName ?? 'No Branch' }}
         @php
             $columns = [
                 'days_worked',
@@ -425,12 +426,49 @@
             $admin = array_fill_keys($columns, 0);
             $field = array_fill_keys($columns, 0);
         @endphp
-        @php
-            $reportRows = [];
-        @endphp
-        @foreach ($payrolls as $payroll)
-            @php
-                $rowValues = [];
+        <table class="detail-report">
+            <colgroup>
+                <col style="width: 12%">
+                @for ($columnIndex = 0; $columnIndex < 26; $columnIndex++)
+                    <col style="width: 3.28846%">
+                @endfor
+                <col style="width: 2.5%">
+            </colgroup>
+            <thead>
+                <tr>
+                    <th class="text-left">Employee Name</th>
+                    <th>Days Worked</th>
+                    <th>Holiday</th>
+                    <th>Days Absent</th>
+                    <th>UT Hours</th>
+                    <th>UT Deduction</th>
+                    <th>Daily Rate</th>
+                    <th>Basic Salary</th>
+                    <th>Holiday Salary</th>
+                    <th>Overtime Pay</th>
+                    <th>Gross Pay</th>
+                    <th>Other Incentives</th>
+                    <th>Cash Adv</th>
+                    <th>Shortages</th>
+                    <th>Other Ded</th>
+                    <th>SSS ER</th>
+                    <th>SSS EE</th>
+                    <th>Prem SS</th>
+                    <th>SSS Loan</th>
+                    <th>SSS Cal</th>
+                    <th>PH ER</th>
+                    <th>PH EE</th>
+                    <th>PAG ER</th>
+                    <th>PAG EE</th>
+                    <th>PAG Loan</th>
+                    <th>Total Deduction</th>
+                    <th>Net Pay</th>
+                    <th>Signature</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($payrolls as $payroll)
+                    @php
                         $type = data_get(
                             $payroll,
                             'employee.employmentTypes.name'
@@ -639,65 +677,184 @@
                                     ),
                             };
                             ${$category}[$column] += $value;
-                            $rowValues[$column] = $value;
                         }
-                $reportRows[] = [
-                    'name' => data_get($payroll, 'employee.full_name', 'Unknown Employee'),
-                    'values' => $rowValues,
-                ];
-            @endphp
-        @endforeach
-        @php
-            $sections = [
-                'ATTENDANCE & EARNINGS' => ['days_worked' => 'Days Worked', 'holiday_days' => 'Holiday', 'days_absent' => 'Days Absent', 'undertime_hours' => 'UT Hours', 'undertime_deduction' => 'UT Deduction', 'daily_rate' => 'Daily Rate', 'basic_salary' => 'Basic Salary', 'holiday_salary' => 'Holiday Pay', 'overtime_salary' => 'Overtime Pay', 'gross_pay' => 'Gross Pay', 'other_incentives' => 'Other Incentives', 'cash_advance' => 'Cash Advance', 'shortages' => 'Shortages', 'other_deduction' => 'Other Ded.'],
-                'DEDUCTIONS & CONTRIBUTIONS' => ['sss_er' => 'SSS ER', 'sss_ee' => 'SSS EE', 'premium_voluntary_ss_contribution' => 'Prem SS', 'sss_salary_loan' => 'SSS Loan', 'sss_calamity_loan' => 'SSS Cal', 'philhealth_er' => 'PH ER', 'philhealth_ee' => 'PH EE', 'pagibig_er' => 'PAG ER', 'pagibig_ee' => 'PAG EE', 'pagibig_salary_loan' => 'PAG Loan', 'total_deductions' => 'Total Deduction', 'net_pay' => 'Net Pay'],
-            ];
-        @endphp
-        @foreach ($sections as $sectionName => $sectionColumns)
-            <h4 class="section-title">{{ $sectionName }}</h4>
-            <table class="detail-report">
-                <thead>
+                    @endphp
                     <tr>
-                        <th class="text-left name-cell">Employee Name</th>
-                        @foreach ($sectionColumns as $label)
-                            <th>{{ $label }}</th>
-                        @endforeach
-                        @if ($sectionName === 'DEDUCTIONS & CONTRIBUTIONS')
-                            <th class="sign-cell">Signature</th>
-                        @endif
+                        <td class="text-left">
+                            {{ data_get(
+                                $payroll,
+                                'employee.full_name',
+                                'Unknown Employee'
+                            ) }}
+                        </td>
+                        <td>{{ $calculatedDaysWorked }}</td>
+                        <td>{{ $holidayDays }}</td>
+                        <td>{{ $calculatedDaysAbsent }}</td>
+                        <td>
+                            {{ number_format(
+                                $undertimeHours,
+                                2
+                            ) }}
+                        </td>
+                        <td>
+                            {{ number_format(
+                                $undertimeDeduction,
+                                2
+                            ) }}
+                        </td>
+                        <td>{{ number_format($dailyRate, 2) }}</td>
+                        <td>
+                            {{ number_format($basicSalary, 2) }}
+                        </td>
+
+                        <td>
+                            {{ number_format($holidaySalary, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($totalOvertime, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($storedGrossPay, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($otherIncentives, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($cashAdvance, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($shortages, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($otherDeduction, 2) }}
+                        </td>
+                        <td>{{ number_format($sssEr, 2) }}</td>
+                        <td>{{ number_format($sssEe, 2) }}</td>
+                        <td>{{ number_format($premium, 2) }}</td>
+                        <td>{{ number_format($sssLoan, 2) }}</td>
+                        <td>
+                            {{ number_format(
+                                $sssCalamityLoan,
+                                2
+                            ) }}
+                        </td>
+                        <td>
+                            {{ number_format(
+                                $philhealthEr,
+                                2
+                            ) }}
+                        </td>
+                        <td>
+                            {{ number_format(
+                                $philhealthEe,
+                                2
+                            ) }}
+                        </td>
+                        <td>
+                            {{ number_format($pagibigEr, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format($pagibigEe, 2) }}
+                        </td>
+                        <td>
+                            {{ number_format(
+                                $pagibigLoan,
+                                2
+                            ) }}
+                        </td>
+                        <td class="bold">
+                            {{ number_format(
+                                $storedTotalDeductions,
+                                2
+                            ) }}
+                        </td>
+                        <td class="bold">
+                            {{ number_format(
+                                $storedNetPay,
+                                2
+                            ) }}
+                        </td>
+                        <td class="signature"></td>
                     </tr>
-                </thead>
-                <tbody>
-                    @foreach ($reportRows as $reportRow)
-                        <tr>
-                            <td class="text-left name-cell">{{ $reportRow['name'] }}</td>
-                            @foreach ($sectionColumns as $column => $label)
-                                <td>{{ number_format($reportRow['values'][$column] ?? 0, in_array($column, ['days_worked', 'holiday_days', 'days_absent'], true) ? 0 : 2) }}</td>
-                            @endforeach
-                            @if ($sectionName === 'DEDUCTIONS & CONTRIBUTIONS')
-                                <td></td>
-                            @endif
-                        </tr>
+                @endforeach
+                <tr class="bold">
+                    <td class="text-left">TOTAL ADMIN</td>
+                    @foreach ($columns as $column)
+                        <td>
+                            {{ number_format(
+                                $admin[$column],
+                                in_array(
+                                    $column,
+                                    [
+                                        'days_worked',
+                                        'holiday_days',
+                                        'days_absent',
+                                    ],
+                                    true
+                                ) ? 0 : 2
+                            ) }}
+                        </td>
                     @endforeach
-                    @foreach (['TOTAL ADMIN' => $admin, 'TOTAL FIELD' => $field, 'TOTAL BRANCH' => null] as $totalLabel => $totals)
-                        <tr class="bold total-row">
-                            <td class="text-left">{{ $totalLabel }}</td>
-                            @foreach ($sectionColumns as $column => $label)
-                                <td>{{ number_format($totals === null ? ($admin[$column] + $field[$column]) : $totals[$column], in_array($column, ['days_worked', 'holiday_days', 'days_absent'], true) ? 0 : 2) }}</td>
-                            @endforeach
-                            @if ($sectionName === 'DEDUCTIONS & CONTRIBUTIONS')
-                                <td></td>
-                            @endif
-                        </tr>
+                    <td></td>
+                </tr>
+                <tr class="bold">
+                    <td class="text-left">TOTAL FIELD</td>
+                    @foreach ($columns as $column)
+                        <td>
+                            {{ number_format(
+                                $field[$column],
+                                in_array(
+                                    $column,
+                                    [
+                                        'days_worked',
+                                        'holiday_days',
+                                        'days_absent',
+                                    ],
+                                    true
+                                ) ? 0 : 2
+                            ) }}
+                        </td>
                     @endforeach
-                </tbody>
-            </table>
-        @endforeach
-        <table class="no-border signature-table">
+                    <td></td>
+                </tr>
+                <tr class="bold">
+                    <td class="text-left">TOTAL BRANCH</td>
+                    @foreach ($columns as $column)
+                        <td>
+                            {{ number_format(
+                                $admin[$column]
+                                    + $field[$column],
+                                in_array(
+                                    $column,
+                                    [
+                                        'days_worked',
+                                        'holiday_days',
+                                        'days_absent',
+                                    ],
+                                    true
+                                ) ? 0 : 2
+                            ) }}
+                        </td>
+                    @endforeach
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+        <br><br>
+        <table class="no-border">
             <tr>
-                <td class="text-left"><div class="signature-line"></div>Prepared by:<br>Name and Signature</td>
+                <td class="text-left">
+                    <div class="signature-line"></div>
+                    Prepared by:<br>
+                    Name and Signature
+                </td>
                 <td></td>
-                <td class="text-left"><div class="signature-line"></div>Approved by:<br><strong>EDUARDO A. OCAMPO</strong><br>Authorized Signatory</td>
+                <td class="text-left">
+                    <div class="signature-line"></div>
+                    Approved by:<br>
+                    <strong>EDUARDO A. OCAMPO</strong><br>
+                    Authorized Signatory
+                </td>
             </tr>
         </table>
     </div>

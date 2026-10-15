@@ -54,7 +54,7 @@ Route::get('/payroll/print/{period}/{branch?}', function (PayrollPeriod $period,
         'period' => $period,
         'groupedPayrolls' => $payrolls,
         'branch' => $branch
-    ])->setPaper('a4', 'landscape');
+    ])->setPaper('legal', 'landscape');
 
     $filename = $branch 
         ? "Payroll-{$branch->branch_name}-{$period->description}.pdf" 
