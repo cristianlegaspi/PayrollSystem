@@ -74,35 +74,27 @@
                     ->count()
                 : 0;
 
-           $totalPaidUnits = $dailyRate > 0
-    ? (int) round($combinedSalary / $dailyRate)
-    : 0;
+            $totalPaidUnits = $dailyRate > 0
+                ? max(0, (int) round($combinedSalary / $dailyRate))
+                : 0;
 
-// Count holidays only if recorded in the DTR
-if ($legalHolidaysCount > 0 && $totalPaidUnits > 0) {
+            // No automatic holiday allocation for a full 15-day period.
+            // Holiday markers are taken from the DTR query above.
+            if ($legalHolidaysCount > 0 && $totalPaidUnits > 0) {
+                $holidayDays = min(
+                    max(0, (int) $legalHolidaysCount),
+                    $totalPaidUnits
+                );
 
-    $holidayDays = min(
-        max(0, (int) $legalHolidaysCount),
-        $totalPaidUnits
-    );
+                $daysWorked = max(0, $totalPaidUnits - $holidayDays);
+            } else {
+                $holidayDays = 0;
+                $daysWorked = $totalPaidUnits;
+            }
 
-    $daysWorked = max(
-        0,
-        $totalPaidUnits - $holidayDays
-    );
+            // Reporting assumes a standard 15-day payroll period.
+            $daysAbsent = max(0, 15 - $totalPaidUnits);
 
-} else {
-
-    // No holiday recorded in DTR
-    $holidayDays = 0;
-
-    // All paid days are regular working days
-    $daysWorked = max(0, $totalPaidUnits);
-
-}
-
-// Calculate absent days
-$daysAbsent
             // Holiday component is split from, not added to, saved salary.
             $holidaySalary = min($combinedSalary, round($holidayDays * $dailyRate, 2));
             $basicSalaryOnly = round($combinedSalary - $holidaySalary, 2);
