@@ -44,14 +44,27 @@
         GRAND PAYROLL SUMMARY - {{ $period->description }}
     </h4>
     @php
+        // Special holiday premium rate (30% of the daily rate).
+        // Change this value if the special holiday rate rule changes.
+        $specialHolidayRate = 0.30;
+
         // Reporting split only: the saved basic_salary includes holiday pay.
-        // This assumes one daily rate per holiday day. Confirm the holiday
-        // rate rule in the payroll generation logic before using for accounting.
-        $splitSalary = function ($payroll) use ($period) {
+        //
+        // LEGAL HOLIDAY  : holiday salary = 1 daily rate per legal holiday day.
+        // SPECIAL HOLIDAY: holiday salary = ONLY the premium (daily rate x 30%).
+        //                  The employee's normal daily rate for that day stays
+        //                  in Basic Salary, and the day counts as a worked day.
+        //
+        // Example: 700 daily rate, worked on a special holiday
+        //          saved basic_salary = 910
+        //          -> Basic Salary   = 700
+        //          -> Holiday Salary = 210
+        $splitSalary = function ($payroll) use ($period, $specialHolidayRate) {
             $dailyRate = (float) ($payroll->daily_rate ?? 0);
             $combinedSalary = (float) ($payroll->basic_salary ?? 0);
             $employeeId = data_get($payroll, 'employee.id');
 
+            // Count Legal Holiday days from the DTR.
             $legalHolidaysCount = $employeeId
                 ? \App\Models\DailyTimeRecord::query()
                     ->where('employee_id', $employeeId)
@@ -63,37 +76,74 @@
                     ->count()
                 : 0;
 
-            $totalPaidUnits = $dailyRate > 0
-                ? max(0, (int) round($combinedSalary / $dailyRate))
+            // Count Special Holiday days from the DTR.
+            $specialHolidaysCount = $employeeId
+                ? \App\Models\DailyTimeRecord::query()
+                    ->where('employee_id', $employeeId)
+                    ->whereBetween('work_date', [$period->start_date, $period->end_date])
+                    ->where(function ($query) {
+                        $query->where('remarks', 'LIKE', '%Special Holiday%')
+                            ->orWhere('remarks', 'LIKE', '%Special Non-Working%')
+                            ->orWhere('status', 'LIKE', '%special_holiday%')
+                            ->orWhere('status', 'LIKE', '%special_non_working%');
+                    })
+                    ->count()
                 : 0;
 
-            // No automatic holiday allocation for a full 15-day period.
-            // Holiday markers are taken from the DTR query above.
-            if ($legalHolidaysCount > 0 && $totalPaidUnits > 0) {
-                $holidayDays = min(
-                    max(0, (int) $legalHolidaysCount),
-                    $totalPaidUnits
-                );
+            // Special holiday premium only (e.g. 700 x 30% = 210).
+            $specialHolidaySalary = $dailyRate > 0 && $specialHolidaysCount > 0
+                ? min(
+                    $combinedSalary,
+                    round($specialHolidaysCount * $dailyRate * $specialHolidayRate, 2)
+                )
+                : 0;
 
-                $daysWorked = max(0, $totalPaidUnits - $holidayDays);
-            } else {
-                $holidayDays = 0;
-                $daysWorked = $totalPaidUnits;
-            }
+            // Remove the special premium first so it is not counted as an
+            // extra paid day (910 -> 700 -> 1 paid day, not 1.3).
+            $salaryWithoutSpecial = $combinedSalary - $specialHolidaySalary;
+
+            $totalPaidUnits = $dailyRate > 0
+                ? max(0, (int) round($salaryWithoutSpecial / $dailyRate))
+                : 0;
+
+            // Legal holiday days are paid days that were not worked.
+            $legalHolidayDays = ($legalHolidaysCount > 0 && $totalPaidUnits > 0)
+                ? min(max(0, (int) $legalHolidaysCount), $totalPaidUnits)
+                : 0;
+
+            // Special holiday days are worked days, so they stay in Days Worked.
+            $specialHolidayDays = ($specialHolidaysCount > 0 && $totalPaidUnits > 0)
+                ? min(
+                    max(0, (int) $specialHolidaysCount),
+                    max(0, $totalPaidUnits - $legalHolidayDays)
+                )
+                : 0;
+
+            $daysWorked = max(0, $totalPaidUnits - $legalHolidayDays);
 
             // Reporting assumes a standard 15-day payroll period.
             $daysAbsent = max(0, 15 - $totalPaidUnits);
 
-            // Holiday component is split from, not added to, saved salary.
-            $holidaySalary = min($combinedSalary, round($holidayDays * $dailyRate, 2));
+            // Legal holiday pay = full daily rate per holiday day.
+            $legalHolidaySalary = round($legalHolidayDays * $dailyRate, 2);
+
+            // Holiday Salary column = legal holiday pay + special premium only.
+            $holidaySalary = min(
+                $combinedSalary,
+                round($legalHolidaySalary + $specialHolidaySalary, 2)
+            );
+
+            // Basic salary is the saved salary minus the holiday component.
             $basicSalaryOnly = round($combinedSalary - $holidaySalary, 2);
 
             return [
                 'basic' => $basicSalaryOnly,
                 'holiday' => $holidaySalary,
-                'holiday_days' => $holidayDays,
+                'holiday_days' => $legalHolidayDays + $specialHolidayDays,
+                'legal_holiday_days' => $legalHolidayDays,
+                'special_holiday_days' => $specialHolidayDays,
                 'days_worked' => $daysWorked,
-                'days_absent' => max(0, $daysAbsent),
+                'days_absent' => $daysAbsent,
             ];
         };
 
