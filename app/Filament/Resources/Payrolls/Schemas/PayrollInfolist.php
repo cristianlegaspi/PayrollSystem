@@ -11,67 +11,126 @@ use Illuminate\Database\Eloquent\Model;
 class PayrollInfolist
 {
     /**
-     * Separate regular and holiday salary.
+     * Special holiday premium rate (30% of the daily rate).
+     * Change this if the special holiday rate rule changes.
+     */
+    private const SPECIAL_HOLIDAY_RATE = 0.30;
+
+    /**
+     * Cache so the DTR queries run once per record per request.
+     */
+    private static array $breakdownCache = [];
+
+    /**
+     * Separate regular salary and holiday salary.
      *
-     * Assumes basic_salary contains both amounts and
-     * each holiday credit equals one daily rate.
+     * basic_salary is assumed to contain both amounts.
+     *
+     * LEGAL HOLIDAY   : holiday salary = 1 daily rate per legal holiday day.
+     * SPECIAL HOLIDAY : holiday salary = ONLY the premium (daily rate x 30%).
+     *                   The normal daily rate for that day stays in Basic
+     *                   Salary and the day counts as a worked day.
+     *
+     * Example: 700 daily rate, worked on a special holiday
+     *          saved basic_salary = 910
+     *          -> Basic Salary   = 700
+     *          -> Holiday Salary = 210
      */
     private static function salaryBreakdown(Model $record): array
     {
+        $cacheKey = $record->getKey() . '|' . ($record->updated_at ?? '');
+
+        if (isset(self::$breakdownCache[$cacheKey])) {
+            return self::$breakdownCache[$cacheKey];
+        }
+
         $dailyRate = (float) ($record->daily_rate ?? 0);
         $combinedSalary = (float) ($record->basic_salary ?? 0);
 
-        $totalPaidDays = $dailyRate > 0
-            ? max(0, (int) round($combinedSalary / $dailyRate))
-            : 0;
-
-        $holidayCount = 0;
+        $legalHolidaysCount = 0;
+        $specialHolidaysCount = 0;
 
         if (
             $record->employee_id
             && $record->payrollPeriod?->start_date
             && $record->payrollPeriod?->end_date
         ) {
-            $holidayCount = DailyTimeRecord::query()
+            $start = $record->payrollPeriod->start_date;
+            $end = $record->payrollPeriod->end_date;
+
+            // Legal holiday days recorded in the DTR.
+            $legalHolidaysCount = DailyTimeRecord::query()
                 ->where('employee_id', $record->employee_id)
-                ->whereBetween('work_date', [
-                    $record->payrollPeriod->start_date,
-                    $record->payrollPeriod->end_date,
-                ])
+                ->whereBetween('work_date', [$start, $end])
                 ->where(function ($query) {
                     $query
                         ->where('remarks', 'LIKE', '%Legal Holiday%')
                         ->orWhere('status', 'LIKE', '%legal_holiday%');
                 })
                 ->count();
+
+            // Special holiday days recorded in the DTR.
+            $specialHolidaysCount = DailyTimeRecord::query()
+                ->where('employee_id', $record->employee_id)
+                ->whereBetween('work_date', [$start, $end])
+                ->where(function ($query) {
+                    $query
+                        ->where('remarks', 'LIKE', '%Special Holiday%')
+                        ->orWhere('remarks', 'LIKE', '%Special Non-Working%')
+                        ->orWhere('status', 'LIKE', '%special_holiday%')
+                        ->orWhere('status', 'LIKE', '%special_non_working%');
+                })
+                ->count();
         }
 
-        // Maintain the same logic as the existing payslip.
-       // Count holidays only if recorded in DTR
-                if ($holidayCount > 0 && $totalPaidDays > 0) {
+        // Special holiday premium only (e.g. 700 x 30% = 210).
+        $specialHolidaySalary = ($dailyRate > 0 && $specialHolidaysCount > 0)
+            ? min(
+                $combinedSalary,
+                round($specialHolidaysCount * $dailyRate * self::SPECIAL_HOLIDAY_RATE, 2)
+            )
+            : 0;
 
-                    $holidayDays = min($holidayCount, $totalPaidDays);
+        // Remove the special premium first so it is not counted as an
+        // extra paid day (910 - 210 = 700 -> 1 paid day, not 1.3).
+        $salaryWithoutSpecial = $combinedSalary - $specialHolidaySalary;
 
-                } else {
+        $totalPaidDays = $dailyRate > 0
+            ? max(0, (int) round($salaryWithoutSpecial / $dailyRate))
+            : 0;
 
-                    // No holiday recorded in DTR
-                    $holidayDays = 0;
+        // Legal holiday days are paid days that were not worked.
+        $legalHolidayDays = ($legalHolidaysCount > 0 && $totalPaidDays > 0)
+            ? min($legalHolidaysCount, $totalPaidDays)
+            : 0;
 
-                }
+        // Special holiday days are worked days, so they stay in regular days.
+        $specialHolidayDays = ($specialHolidaysCount > 0 && $totalPaidDays > 0)
+            ? min($specialHolidaysCount, max(0, $totalPaidDays - $legalHolidayDays))
+            : 0;
 
-                // Calculate regular working days
-                $regularDays = max(0, $totalPaidDays - $holidayDays);
+        $regularDays = max(0, $totalPaidDays - $legalHolidayDays);
 
-                // Calculate salary
-                $holidaySalary = round($holidayDays * $dailyRate, 2);
-                $regularSalary = round($combinedSalary - $holidaySalary, 2);
+        // Legal holiday pay = full daily rate per holiday day.
+        $legalHolidaySalary = round($legalHolidayDays * $dailyRate, 2);
 
-                return [
-                    'regular_days'   => $regularDays,
-                    'holiday_days'   => $holidayDays,
-                    'basic_salary'   => $regularSalary,
-                    'holiday_salary' => $holidaySalary,
-                ];
+        // Holiday Salary = legal holiday pay + special holiday premium only.
+        $holidaySalary = min(
+            $combinedSalary,
+            round($legalHolidaySalary + $specialHolidaySalary, 2)
+        );
+
+        // Basic salary = saved salary minus the holiday component.
+        $regularSalary = round($combinedSalary - $holidaySalary, 2);
+
+        return self::$breakdownCache[$cacheKey] = [
+            'regular_days'         => $regularDays,
+            'holiday_days'         => $legalHolidayDays + $specialHolidayDays,
+            'legal_holiday_days'   => $legalHolidayDays,
+            'special_holiday_days' => $specialHolidayDays,
+            'basic_salary'         => $regularSalary,
+            'holiday_salary'       => $holidaySalary,
+        ];
     }
 
     public static function configure(Schema $schema): Schema
@@ -142,13 +201,29 @@ class PayrollInfolist
                             )
                             ->money('PHP'),
 
-                        // HOLIDAY SALARY
+                        // HOLIDAY SALARY (legal holiday pay + special holiday premium only)
                         TextEntry::make('holiday_salary_amount')
-                            ->label(fn (Model $record) =>
-                                'Holiday Salary (' .
-                                self::salaryBreakdown($record)['holiday_days'] .
-                                ' days)'
-                            )
+                            ->label(function (Model $record) {
+                                $breakdown = self::salaryBreakdown($record);
+
+                                $label = 'Holiday Salary (' . $breakdown['holiday_days'] . ' days';
+
+                                $parts = [];
+
+                                if ($breakdown['legal_holiday_days'] > 0) {
+                                    $parts[] = $breakdown['legal_holiday_days'] . ' legal';
+                                }
+
+                                if ($breakdown['special_holiday_days'] > 0) {
+                                    $parts[] = $breakdown['special_holiday_days'] . ' special';
+                                }
+
+                                if (! empty($parts)) {
+                                    $label .= ': ' . implode(', ', $parts);
+                                }
+
+                                return $label . ')';
+                            })
                             ->state(fn (Model $record) =>
                                 self::salaryBreakdown($record)['holiday_salary']
                             )

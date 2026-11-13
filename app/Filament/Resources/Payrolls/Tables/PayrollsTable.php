@@ -3,13 +3,12 @@
 namespace App\Filament\Resources\Payrolls\Tables;
 
 use App\Models\PayrollPeriod;
-use Filament\Actions\BulkActionGroup;
-use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Filters\SelectFilter;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 
 class PayrollsTable
 {
@@ -17,7 +16,7 @@ class PayrollsTable
     {
         return $table
 
-         ->defaultSort(function ($query) {
+            ->defaultSort(function ($query) {
                 return $query
                     ->orderByDesc(
                         PayrollPeriod::query()
@@ -30,8 +29,6 @@ class PayrollsTable
                     )
                     ->orderByDesc('payrolls.id');
             })
-
-
 
             ->columns([
                 TextColumn::make('employee.full_name')
@@ -64,20 +61,51 @@ class PayrollsTable
             ])
 
             ->filters([
-              
+
+                // ✅ FILTER: Payroll Period (pinakabago ang nasa taas)
+                SelectFilter::make('payroll_period_id')
+                    ->label('Payroll Period')
+                    ->relationship(
+                        name: 'payrollPeriod',
+                        titleAttribute: 'description',
+                        modifyQueryUsing: fn (Builder $query) => $query
+                            ->orderByDesc('start_date')
+                            ->orderByDesc('id'),
+                    )
+                    ->multiple()
+                    ->searchable()
+                    ->preload(),
+
+                // ✅ FILTER: Remarks (galing sa payroll period)
+                SelectFilter::make('remarks')
+                    ->label('Remarks')
+                    ->options([
+                        'Approved' => 'Approved',
+                        'Pending'  => 'Pending',
+                        'Rejected' => 'Rejected',
+                    ])
+                    ->query(function (Builder $query, array $data) {
+                        if (! empty($data['value'])) {
+                            $query->whereHas(
+                                'payrollPeriod',
+                                fn (Builder $q) => $q->where('remarks', $data['value'])
+                            );
+                        }
+                    }),
+
             ])
 
             ->recordActions([
                 ViewAction::make(),
-            EditAction::make()
-            ->visible(fn ($record) =>
-                $record->payrollPeriod?->status === 'Finalized'
-                && $record->payrollPeriod?->remarks === 'Pending'
-            ),
+                EditAction::make()
+                    ->visible(fn ($record) =>
+                        $record->payrollPeriod?->status === 'Finalized'
+                        && $record->payrollPeriod?->remarks === 'Pending'
+                    ),
             ])
 
             ->toolbarActions([
-                
+                //
             ]);
     }
 }

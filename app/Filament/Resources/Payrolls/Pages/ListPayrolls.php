@@ -13,6 +13,7 @@ use App\Models\Payroll;
 use App\Models\Branch;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Database\Eloquent\Builder;
 
 class ListPayrolls extends ListRecords
 {
@@ -101,16 +102,19 @@ class ListPayrolls extends ListRecords
                         ->required()
                         ->native(false),
 
-                    Select::make('payroll_period_id')
-                        ->label('Payroll Period')
-                        ->relationship(
-                            name: 'payrollPeriod',
-                            titleAttribute: 'description'
-                        )
-                        ->searchable()
-                        ->preload()
-                        ->required(),
-
+                 Select::make('payroll_period_id')
+    ->label('Payroll Period')
+    ->relationship(
+        name: 'payrollPeriod',
+        titleAttribute: 'description',
+        modifyQueryUsing: fn (Builder $query) => $query
+            ->orderByDesc('created_at')
+            ->orderByDesc('id'),
+    )
+    ->default(fn () => PayrollPeriod::query()->latest('created_at')->latest('id')->value('id'))
+    ->searchable()
+    ->preload()
+    ->required(),
                 ])
 
                 ->action(function (array $data) {

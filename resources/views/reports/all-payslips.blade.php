@@ -166,6 +166,12 @@ th {
 
 <body>
 
+@php
+    // Special holiday premium rate (30% of the daily rate).
+    // Change this value if the special holiday rate rule changes.
+    $specialHolidayRate = 0.30;
+@endphp
+
 @foreach($payrolls as $payroll)
 
 @php
@@ -176,8 +182,11 @@ th {
 
     $legalHolidaysCount = 0;
 
+    $specialHolidaysCount = 0;
+
     if ($employeeId) {
 
+        // Legal holiday days recorded in the DTR.
         $legalHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $employeeId)
 
             ->whereBetween('work_date', [$period->start_date, $period->end_date])
@@ -187,6 +196,25 @@ th {
                 $query->where('remarks', 'LIKE', '%Legal Holiday%')
 
                       ->orWhere('status', 'LIKE', '%legal_holiday%');
+
+            })
+
+            ->count();
+
+        // Special holiday days recorded in the DTR.
+        $specialHolidaysCount = \App\Models\DailyTimeRecord::where('employee_id', $employeeId)
+
+            ->whereBetween('work_date', [$period->start_date, $period->end_date])
+
+            ->where(function($query) {
+
+                $query->where('remarks', 'LIKE', '%Special Holiday%')
+
+                      ->orWhere('remarks', 'LIKE', '%Special Non-Working%')
+
+                      ->orWhere('status', 'LIKE', '%special_holiday%')
+
+                      ->orWhere('status', 'LIKE', '%special_non_working%');
 
             })
 
@@ -209,6 +237,8 @@ th {
         'days_worked' => (float) ($payroll->days_worked ?? 0),
 
         'legal_holidays' => $legalHolidaysCount,
+
+        'special_holidays' => $specialHolidaysCount,
 
         'basic_salary' => (float) ($payroll->basic_salary ?? 0),
 
@@ -266,45 +296,85 @@ th {
 
     $isSecondCutoff = $startDay >= 16;
 
-    // The existing basic_salary includes both regular and holiday credits.
+    /*
+     * The saved basic_salary includes both regular salary and holiday pay.
+     * We only separate the presentation of both components.
+     *
+     * LEGAL HOLIDAY   : holiday salary = 1 daily rate per legal holiday day.
+     * SPECIAL HOLIDAY : holiday salary = ONLY the premium (daily rate x 30%).
+     *                   The normal daily rate for that day stays in Basic
+     *                   Salary and the day counts as a worked day.
+     *
+     * Example: 700 daily rate, worked on a special holiday
+     *          saved basic_salary = 910
+     *          -> Basic Salary   = 700
+     *          -> Holiday Salary = 210
+     */
     $dailyRate = (float) ($data['daily_rate'] ?? 0);
     $combinedBasicSalary = (float) ($data['basic_salary'] ?? 0);
     $legalHolidaysCount = max(0, (int) ($data['legal_holidays'] ?? 0));
+    $specialHolidaysCount = max(0, (int) ($data['special_holidays'] ?? 0));
     $undertime_deduction = (float) ($data['undertime_deduction'] ?? 0);
 
-    $totalPaidDays = $dailyRate > 0
-        ? max(0, (int) round($combinedBasicSalary / $dailyRate))
+    // Special holiday premium only (e.g. 700 x 30% = 210).
+    $specialHolidaySalary = ($dailyRate > 0 && $specialHolidaysCount > 0)
+        ? min(
+            $combinedBasicSalary,
+            round($specialHolidaysCount * $dailyRate * $specialHolidayRate, 2)
+        )
         : 0;
 
-    // Same holiday-day logic as the individual payslip.
-    // CAUTION: The 15-day fallback assumes a holiday even with no DTR holiday.
-    if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
+    // Remove the special premium first so it is not counted as an
+    // extra paid day (910 - 210 = 700 -> 1 paid day, not 1.3).
+    $salaryWithoutSpecial = $combinedBasicSalary - $specialHolidaySalary;
 
-    // Count only actual holidays recorded in the DTR
-    $holidayDays = min(
-        $legalHolidaysCount,
-        $totalPaidDays
+    $totalPaidDays = $dailyRate > 0
+        ? max(0, (int) round($salaryWithoutSpecial / $dailyRate))
+        : 0;
+
+    // Legal holiday days are paid days that were not worked.
+    $legalHolidayDays = ($legalHolidaysCount > 0 && $totalPaidDays > 0)
+        ? min($legalHolidaysCount, $totalPaidDays)
+        : 0;
+
+    // Special holiday days are worked days, so they stay in worked days.
+    $specialHolidayDays = ($specialHolidaysCount > 0 && $totalPaidDays > 0)
+        ? min($specialHolidaysCount, max(0, $totalPaidDays - $legalHolidayDays))
+        : 0;
+
+    // Holidays column = legal + special.
+    $holidayDays = $legalHolidayDays + $specialHolidayDays;
+
+    // Regular working days (includes special holiday days worked).
+    $calculatedDaysWorked = max(0, $totalPaidDays - $legalHolidayDays);
+
+    // Legal holiday pay = full daily rate per holiday day.
+    $legalHolidaySalary = round($legalHolidayDays * $dailyRate, 2);
+
+    // Holiday Salary = legal holiday pay + special premium only.
+    $holidaySalary = min(
+        $combinedBasicSalary,
+        round($legalHolidaySalary + $specialHolidaySalary, 2)
     );
 
-    $calculatedDaysWorked = max(
-        0,
-        $totalPaidDays - $holidayDays
-    );
-
-} else {
-
-    // No holiday recorded
-    $holidayDays = 0;
-
-    // All paid days are regular working days
-    $calculatedDaysWorked = max(0, $totalPaidDays);
-
-}
-
-    // Presentation-only split; preserve saved gross pay and other values.
-    // Assumes each holiday credit inside basic_salary is one daily rate.
-    $holidaySalary = round($holidayDays * $dailyRate, 2);
+    // Basic salary = saved salary minus the holiday component.
     $basicSalary = round($combinedBasicSalary - $holidaySalary, 2);
+
+    // Label detail, e.g. "2: 1 legal, 1 special"
+    $holidayLabelParts = [];
+
+    if ($legalHolidayDays > 0) {
+        $holidayLabelParts[] = $legalHolidayDays . ' legal';
+    }
+
+    if ($specialHolidayDays > 0) {
+        $holidayLabelParts[] = $specialHolidayDays . ' special';
+    }
+
+    $holidayLabel = $holidayDays
+        . (count($holidayLabelParts)
+            ? ': ' . implode(', ', $holidayLabelParts)
+            : '');
 
     $sss_ee = $isFirstCutoff ? ($data['sss_ee'] ?? 0) : 0;
 
@@ -386,7 +456,7 @@ th {
         </tr>
 
         <tr>
-            <td>Holidays ({{ $holidayDays }})</td>
+            <td>Holidays ({{ $holidayLabel }})</td>
             <td class="right">PHP {{ number_format($holidaySalary, 2) }}</td>
         </tr>
 

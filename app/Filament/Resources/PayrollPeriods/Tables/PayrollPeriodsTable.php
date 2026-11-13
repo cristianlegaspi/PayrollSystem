@@ -2,21 +2,16 @@
 
 namespace App\Filament\Resources\PayrollPeriods\Tables;
 
+use App\Models\PayrollPeriod;
 use Filament\Actions\Action;
-use Filament\Actions\ActionGroup;
-use Filament\Tables;
-use Filament\Tables\Table;
-use Filament\Tables\Columns\TextColumn;
-
 use Filament\Actions\BulkActionGroup;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
-use Illuminate\Support\Facades\Auth;
-
-
-
 use Filament\Notifications\Notification;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Filters\SelectFilter;
+use Filament\Tables\Table;
+use Illuminate\Support\Facades\Auth;
 
 class PayrollPeriodsTable
 {
@@ -24,16 +19,11 @@ class PayrollPeriodsTable
     {
         return $table
 
-         ->defaultSort(function ($query) {
+            ->defaultSort(function ($query) {
                 return $query
                     ->orderByDesc('start_date')
                     ->orderByDesc('id');
             })
-
-
-
-
-
 
             ->columns([
                 TextColumn::make('description')
@@ -49,18 +39,12 @@ class PayrollPeriodsTable
                 TextColumn::make('total_gross')
                     ->label('Total Gross Payout')
                     ->money('PHP')
-                    ->getStateUsing(
-                        fn($record) =>
-                        $record->payrolls->sum('gross_pay')
-                    ),
+                    ->getStateUsing(fn ($record) => $record->payrolls->sum('gross_pay')),
 
                 TextColumn::make('total_net')
                     ->label('Total Net Payout')
                     ->money('PHP')
-                    ->getStateUsing(
-                        fn($record) =>
-                        $record->payrolls->sum('net_pay')
-                    ),
+                    ->getStateUsing(fn ($record) => $record->payrolls->sum('net_pay')),
 
                 TextColumn::make('status')
                     ->label('Payroll Status')
@@ -81,9 +65,23 @@ class PayrollPeriodsTable
                     ]),
             ])
 
+            // ✅ FILTER: Payroll Period
+            ->filters([
+                SelectFilter::make('id')
+                    ->label('Payroll Period')
+                    ->options(
+                        fn () => PayrollPeriod::query()
+                            ->orderByDesc('start_date')
+                            ->orderByDesc('id')
+                            ->pluck('description', 'id')
+                    )
+                    ->multiple()      // pwede pumili ng higit sa isang period
+                    ->searchable()
+                    ->preload(),
+            ])
+
             ->recordActions([
 
-                // ViewAction::make(),
                 EditAction::make(),
 
                 // REVIEW PDF (only when Finalized AND NOT Approved)
@@ -92,13 +90,13 @@ class PayrollPeriodsTable
                     ->icon('heroicon-o-eye')
                     ->color('info')
                     ->visible(
-                        fn($record) =>
+                        fn ($record) =>
                         $record->status === 'Finalized' &&
-                            $record->remarks !== 'Approved' && 
+                            $record->remarks !== 'Approved' &&
                             Auth::check() &&
-                            in_array(optional(Auth::user()->role)->role_name, ['Owner', 'Admin', 'Super Admin'])  // 👈 role restriction
+                            in_array(optional(Auth::user()->role)->role_name, ['Owner', 'Admin', 'Super Admin'])
                     )
-                    ->url(fn($record) => route('payroll.print', ['period' => $record->id]))
+                    ->url(fn ($record) => route('payroll.print', ['period' => $record->id]))
                     ->openUrlInNewTab(),
 
                 // PRINT (ONLY when Approved)
@@ -106,11 +104,8 @@ class PayrollPeriodsTable
                     ->label('Print Approved Payroll')
                     ->icon('heroicon-o-printer')
                     ->color('success')
-                    ->visible(
-                        fn($record) =>
-                        $record->remarks === 'Approved'
-                    )
-                    ->url(fn($record) => route('payroll.print', ['period' => $record->id]))
+                    ->visible(fn ($record) => $record->remarks === 'Approved')
+                    ->url(fn ($record) => route('payroll.print', ['period' => $record->id]))
                     ->openUrlInNewTab(),
 
                 // APPROVE (only when Finalized AND NOT Approved) AND ROLE = Owner
@@ -119,11 +114,11 @@ class PayrollPeriodsTable
                     ->icon('heroicon-o-check-circle')
                     ->color('success')
                     ->visible(
-                        fn($record) =>
+                        fn ($record) =>
                         $record->status === 'Finalized' &&
                             $record->remarks !== 'Approved' &&
                             Auth::check() &&
-                            optional(Auth::user()->role)->role_name === 'Owner' // 👈 role restriction
+                            optional(Auth::user()->role)->role_name === 'Owner'
                     )
                     ->requiresConfirmation()
                     ->action(function ($record) {
@@ -141,11 +136,11 @@ class PayrollPeriodsTable
                     ->icon('heroicon-o-x-circle')
                     ->color('danger')
                     ->visible(
-                        fn($record) =>
+                        fn ($record) =>
                         $record->status === 'Finalized' &&
                             $record->remarks !== 'Approved' &&
                             Auth::check() &&
-                            optional(Auth::user()->role)->role_name === 'Owner' // 👈 role restriction
+                            optional(Auth::user()->role)->role_name === 'Owner'
                     )
                     ->requiresConfirmation()
                     ->modalHeading('Reject Payroll')
@@ -163,7 +158,6 @@ class PayrollPeriodsTable
                     }),
 
             ])
-
 
             ->toolbarActions([
                 BulkActionGroup::make([

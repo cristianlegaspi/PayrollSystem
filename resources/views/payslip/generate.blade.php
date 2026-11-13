@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 
@@ -134,10 +133,23 @@
     | BASIC SALARY AND HOLIDAY SALARY
     |--------------------------------------------------------------------------
     |
-    | The saved basic_salary contains regular salary + holiday salary.
+    | The saved basic_salary contains regular salary + holiday pay.
     | We only separate the presentation of both components.
     |
+    | LEGAL HOLIDAY   : holiday salary = 1 daily rate per legal holiday day.
+    | SPECIAL HOLIDAY : holiday salary = ONLY the premium (daily rate x 30%).
+    |                   The normal daily rate for that day stays in Basic
+    |                   Salary and the day counts as a worked day.
+    |
+    | Example: 700 daily rate, worked on a special holiday
+    |          saved basic_salary = 910
+    |          -> Basic Salary   = 700
+    |          -> Holiday Salary = 210
+    |
     */
+
+    // Special holiday premium rate (30% of the daily rate).
+    $specialHolidayRate = 0.30;
 
     $dailyRate = (float) ($data['daily_rate'] ?? 0);
 
@@ -150,48 +162,55 @@
         (int) ($data['legal_holidays'] ?? 0)
     );
 
+    $specialHolidaysCount = max(
+        0,
+        (int) ($data['special_holidays'] ?? 0)
+    );
+
+    // Special holiday premium only (e.g. 700 x 30% = 210).
+    $specialHolidaySalary = ($dailyRate > 0 && $specialHolidaysCount > 0)
+        ? min(
+            $combinedBasicSalary,
+            round(
+                $specialHolidaysCount * $dailyRate * $specialHolidayRate,
+                2
+            )
+        )
+        : 0;
+
+    // Remove the special premium first so it is not counted as an
+    // extra paid day (910 - 210 = 700 -> 1 paid day, not 1.3).
+    $salaryWithoutSpecial = $combinedBasicSalary - $specialHolidaySalary;
+
     // Total paid units based on saved salary
     $totalPaidDays = $dailyRate > 0
         ? max(
             0,
-            (int) round($combinedBasicSalary / $dailyRate)
+            (int) round($salaryWithoutSpecial / $dailyRate)
         )
         : 0;
 
-    /*
-    | Preserve the existing holiday detection.
-    |
-    | Example:
-    | 15 total paid days
-    | 1 holiday
-    | 14 regular working days
-    */
+    // Legal holiday days are paid days that were not worked.
+    $legalHolidayDays = ($legalHolidaysCount > 0 && $totalPaidDays > 0)
+        ? min($legalHolidaysCount, $totalPaidDays)
+        : 0;
 
-    // Count holidays only if recorded in the DTR
-if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
+    // Special holiday days are worked days, so they stay in worked days.
+    $specialHolidayDays = ($specialHolidaysCount > 0 && $totalPaidDays > 0)
+        ? min(
+            $specialHolidaysCount,
+            max(0, $totalPaidDays - $legalHolidayDays)
+        )
+        : 0;
 
-    $holidayDays = min(
-        $legalHolidaysCount,
-        $totalPaidDays
-    );
+    // Holidays column = legal + special
+    $holidayDays = $legalHolidayDays + $specialHolidayDays;
 
+    // Regular working days (includes special holiday days worked)
     $calculatedDaysWorked = max(
         0,
-        $totalPaidDays - $holidayDays
+        $totalPaidDays - $legalHolidayDays
     );
-
-} else {
-
-    // No holiday recorded in DTR
-    $holidayDays = 0;
-
-    // All paid days are regular working days
-    $calculatedDaysWorked = max(
-        0,
-        $totalPaidDays
-    );
-
-}
 
     /*
     |--------------------------------------------------------------------------
@@ -199,15 +218,39 @@ if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
     |--------------------------------------------------------------------------
     */
 
-    $holidaySalary = round(
-        $holidayDays * $dailyRate,
+    // Legal holiday pay = full daily rate per holiday day.
+    $legalHolidaySalary = round(
+        $legalHolidayDays * $dailyRate,
         2
     );
 
+    // Holiday Salary = legal holiday pay + special premium only.
+    $holidaySalary = min(
+        $combinedBasicSalary,
+        round($legalHolidaySalary + $specialHolidaySalary, 2)
+    );
+
+    // Basic salary = saved salary minus the holiday component.
     $basicSalary = round(
         $combinedBasicSalary - $holidaySalary,
         2
     );
+
+    // Label detail, e.g. "2: 1 legal, 1 special"
+    $holidayLabelParts = [];
+
+    if ($legalHolidayDays > 0) {
+        $holidayLabelParts[] = $legalHolidayDays . ' legal';
+    }
+
+    if ($specialHolidayDays > 0) {
+        $holidayLabelParts[] = $specialHolidayDays . ' special';
+    }
+
+    $holidayLabel = $holidayDays
+        . (count($holidayLabelParts)
+            ? ': ' . implode(', ', $holidayLabelParts)
+            : '');
 
 
     /*
@@ -398,12 +441,12 @@ if ($legalHolidaysCount > 0 && $totalPaidDays > 0) {
         </tr>
 
 
-        <!-- HOLIDAY SALARY -->
+        <!-- HOLIDAY SALARY (legal holiday pay + special holiday premium only) -->
 
         <tr>
             <td>
                 Holidays
-                ({{ $holidayDays }})
+                ({{ $holidayLabel }})
             </td>
 
             <td class="right">
